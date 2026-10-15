@@ -6,17 +6,17 @@
 - **Curva base:** $C(\phi) \in [0, 1]$, donde $0$ representa máxima atenuación (suelo visual en $-24\text{ dB}$ o silencio según curva) y $1$ representa ganancia unitaria ($0\text{ dB}$).
 - **Desplazamiento de fase (`SHIFT`):** Parámetro $S \in [0, 1]$ (`0%..100%`, default `0%`). Desplaza horizontalmente la lectura de la tabla/función de curva con wrap cíclico:
   $$\phi_{\text{shifted}} = \text{frac}(\phi - S)$$
-- **Inclinación/Tensión (`SLOPE`):** Parámetro $K \in [0, 1]$ (`0%..100%`, default `50%`). En $K = 0.5$ la curva mantiene su forma nominal; valores $< 0.5$ comprimen la recuperación (más rápida/cóncava) y valores $> 0.5$ expanden la retención del ducking (más lenta/convexa) aplicando una función de potencia continua sobre cada segmento:
+- **Inclinación/Tensión (`SLOPE`):** Parámetro $K \in [0, 1]$ (`0%..100%`, default `50%`). En $K = 0.5$ la curva mantiene su forma nominal; valores $< 0.5$ comprimen la recuperación (más rápida/cóncava) y valores $> 0.5$ expanden la retención del ducking (más lenta/convexa) aplicando una función de potencia continua sobre el tiempo normalizado `t` de cada segmento (deformación temporal del segmento), independientemente de si el tramo sube o baja:
   $$p = 2^{(K - 0.5) \cdot 2}, \quad t' = t^p$$
 - **Ganancia efectiva instantánea:**
   $$G(\phi) = (1 - M) + M \cdot C_{\text{slope}}(\phi_{\text{shifted}})$$
 - **Lectura en decibelios (UI Readout y Eje Y):**
   $$\text{Gain}_{\text{dB}}(\phi) = 20 \cdot \log_{10}(\max(G(\phi), 10^{-3}))$$
-  Clampeado visualmente en el rango $[0\text{ dB}, -24\text{ dB}]$ para el área de trazado.
+  El cálculo interno llega hasta $-60\text{ dB}$ ($10^{-3}$); solo la gráfica recorta visualmente su eje Y al rango $[0\text{ dB}, -24\text{ dB}]$.
 - **Modo de canales (`CHANNELS: Stereo / Mono`):**
   - `Stereo`: aplica $G[n]$ idéntico a L y R preservando la imagen estéreo original: $y_L[n] = G[n] \cdot x_L[n]$, $y_R[n] = G[n] \cdot x_R[n]$.
-  - `Mono`: suma la entrada a mono con compensación de potencia antes de aplicar la envolvente: $m[n] = 0.5 \cdot (x_L[n] + x_R[n]) \cdot G[n]$, escribiendo $m[n]$ en ambos canales de salida.
-- **Bypass:** Rampa lineal/exponencial libre de clics de 10 ms hacia $G = 1.0$ y preservación del canal original.
+  - `Mono`: promedio lineal (-6 dB por canal) de la entrada, que evita clipping cuando L y R están en fase, antes de aplicar la envolvente: $m[n] = 0.5 \cdot (x_L[n] + x_R[n]) \cdot G[n]$, escribiendo $m[n]$ en ambos canales de salida.
+- **Bypass:** Rampa lineal/exponencial de 10 ms hacia $G = 1.0$, con suavizado para minimizar discontinuidades audibles, y preservación del canal original.
 
 ## 2. Tiempo Musical y Divisiones (`RATE`)
 La posición PPQ de JUCE se mide en negras métricas. Las 4 divisiones de `RATE` del diseño son:
@@ -47,11 +47,12 @@ Motor por segmentos con nodos $(\phi, \text{valor})$ ordenados en $[0, 1]$, inte
 7. **`07 Deep`:** Retención prolongada en atenuación máxima `[(0,0), (0.45,0), (0.80,0.75), (1,1)]`.
 8. **`08 Light`:** Atenuación sutil y recuperación temprana `[(0,0.35), (0.15,0.35), (0.45,1), (1,1)]`.
 9. **`09 Pump`:** Efecto sidechain exagerado con curva exponencial tardía `[(0,0), (0.25,0.05), (0.65,0.40), (0.92,1), (1,1)]`.
-10. **`10 Flow`:** Onda sinusoidal continua suave `[(0,0.5), (0.25,0), (0.75,1), (1,0.5)]`.
-11. **`11 Step`:** Compuerta rítmica por escalones (interpolación step/rampa de 2 ms anti-clic) `[(0,0), (0.50,0), (0.501,1), (1,1)]`.
-12. **`12 Custom`:** En el MVP delega de forma segura a la curva `01 Classic` (o mantiene el último preset válido) mostrando el aviso en UI *"Custom: editor coming in a later version"*.
+10. **`10 Flow`:** Onda suave continua con `smoothstep` por tramo, como el resto del motor `[(0,0.5), (0.25,0), (0.75,1), (1,0.5)]`.
+11. **`11 Step`:** Compuerta rítmica por escalones: los nodos definen un escalón ideal en `0.50` `[(0,0), (0.50,0), (0.50,1), (1,1)]`. El suavizado anti-clic se delega al `GainSmoother` general (1–2 ms).
+    - **Regla de segmentos de ancho cero (aplica a todo el motor):** si dos nodos consecutivos cumplen `dx <= 1e-6` (misma fase), el interpolador NO debe dividir por `dx` (evita división por cero / NaN); salta directamente al valor del segundo nodo.
+12. **`12 Custom`:** En v1 delega siempre a la curva `01 Classic`, mostrando el aviso en UI *"Custom: editor coming in a later version"*.
 
 ## 5. Medición y Suavizado en Tiempo Real
 - **Suavizado:** Cambios en `MIX`, `SHIFT`, `SLOPE`, `RATE` o selección de curva aplican rampa/crossfade de 5–10 ms para evitar clics. En discontinuidades de salto de ciclo ($C(1) \neq C(0)$), aplicar micro-rampa de 1 ms.
-- **Medidores `IN` / `OUT`:** Cálculo de picos por bloque en dBFS con decaimiento balístico suave, exportado mediante `std::atomic<float>` para consumo exclusivo del hilo de UI.
+- **Medidores `IN` / `OUT`:** Solo Pico (Peak): cálculo por bloque en dBFS con decaimiento balístico suave, exportado mediante `std::atomic<float>` para consumo exclusivo del hilo de UI.
 - **Restricción absoluta:** Cero asignaciones dinámicas (`new`/`malloc`), locks, I/O ni llamadas a UI dentro de `processBlock`.

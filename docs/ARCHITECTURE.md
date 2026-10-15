@@ -9,7 +9,7 @@
 | **Formato de plugin** | VST3 (`x86_64` Windows como target primario; Standalone solo para desarrollo/test) |
 | **Build system** | CMake >= 3.22 + Ninja / MSVC (Visual Studio 2022 Build Tools) |
 | **UI y Renderizado** | `juce::Graphics` / `juce::Path` nativo (sin WebView ni frameworks externos) |
-| **Fuentes tipográficas** | `Archivo` (Regular, SemiBold, ExtraBold) e `IBM Plex Mono` (Regular, Medium) embebidas vía `juce_add_binary_data` |
+| **Fuentes tipográficas** | `Archivo` (Light, Regular, SemiBold, ExtraBold) e `IBM Plex Mono` (Regular, Medium) embebidas vía `juce_add_binary_data`; fallback a fuentes del sistema mientras falten los `.ttf` |
 | **Estado y Parámetros** | `juce::AudioProcessorValueTreeState` (APVTS) con serialización XML en estado del plugin |
 | **Testing** | CTest + Catch2 v3 (pruebas unitarias/integración) + `pluginval` (strictness level 5) |
 | **Dependencias prohibidas** | Librerías de terceros para UI, Boost, motores de scripting, SDKs de red/telemetría |
@@ -32,6 +32,7 @@ UMBRAL-Duck/
       UMBRAL Duck — Rediseño UI.pdf
   Assets/
     Fonts/
+      Archivo-Light.ttf
       Archivo-Regular.ttf
       Archivo-SemiBold.ttf
       Archivo-ExtraBold.ttf

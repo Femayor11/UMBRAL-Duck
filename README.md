@@ -17,8 +17,18 @@ Windows x86_64, VST3, JUCE 8.x, C++20 y CMake >=3.22. Un plugin que modula la ga
 6. `docs/TASKS.md`: secuencia de tareas y aceptación.
 7. `docs/DECISIONS.md`: decisiones, alternativas y asuntos abiertos.
 
-## Construcción (cuando exista código)
-La configuración, compilación y pruebas se definirán y comprobarán en T-01. No se presentan comandos no verificados como si ya funcionaran. Dependencias externas: JUCE 8.x y un SDK VST3 compatible a través de JUCE; revisar condiciones de licencia antes de publicar.
+## Construcción
+Requisitos (Windows x64): Visual Studio Build Tools con C++ (verificado con MSVC 19.51 / VS 18 Build Tools), CMake >= 3.22 y Git. JUCE `8.0.15` y Catch2 `v3.9.1` se descargan por FetchContent (versiones fijadas en `CMakeLists.txt`). La primera configuración tarda varios minutos.
+
+Local (verificado), desde una terminal con el entorno de VS cargado (`VsDevCmd.bat -arch=x64`):
+
+```powershell
+cmake --preset windows-ninja
+cmake --build --preset ninja-release
+ctest --preset ninja-release
+```
+
+El `.vst3` queda en `build-ninja/UmbralDuck_artefacts/Release/VST3/`. El preset `windows-msvc` (generador Visual Studio 17 2022) es el que usa el CI y **aún no se ha verificado**.
 
 ## Política de distribución
-Gratuito para el usuario final. La elección definitiva entre las modalidades de licencia de JUCE, la licencia del código propio y los avisos de terceros es una decisión de publicación pendiente. No utilizar nombres, logos, capturas ni curvas extraídas de productos comerciales.
+Gratuito para el usuario final. El proyecto se documenta bajo GPLv3/AGPLv3, compatible con JUCE 8 Open Source; la auditoría final de licencias y avisos de terceros queda para T-14. No utilizar nombres, logos, capturas ni curvas extraídas de productos comerciales.

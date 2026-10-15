@@ -1,0 +1,7 @@
+build/
+build-ninja/
+out/
+.vs/
+.vscode/
+CMakeUserPresets.json
+*.user

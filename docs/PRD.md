@@ -11,7 +11,7 @@ Plugin VST3 gratuito, local y ligero con estética oscura de alta precisión (`U
 1. **Formato y Canales:** VST3 para Windows `x86_64`, con selector `CHANNELS` (`Stereo` / `Mono`) y soporte de buses mono/estéreo.
 2. **Sincronía y Reloj (`RATE`, `BPM`, `SYNC`):** Divisiones `1/8`, `1/4`, `1/2` y `1/1`, modo sincronizado al DAW (`SYNC` activo) y modo libre con `BPM` propio (`40.0–240.0`).
 3. **Banco de Curvas (`CURVE BANK`):** 12 celdas interactivas (`01 Classic` a `11 Step` operativas en DSP + `12 Custom` reservada con aviso informativo para versión futura).
-4. **Modelado y Mezcla:** Controles de `MIX` (`0–100%`), `SHIFT` (`0–100%`), `SLOPE` (`0–100%`) y `BYPASS` suave libre de clics.
+4. **Modelado y Mezcla:** Controles de `MIX` (`0–100%`), `SHIFT` (`0–100%`), `SLOPE` (`0–100%`) y `BYPASS` suave con suavizado para minimizar discontinuidades audibles.
 5. **Visualizador `GAIN RESPONSE`:** Gráfica en tiempo real con escala en dB (`0` a `-24 dB`), eje temporal (`0`, `1/4`, `1/2`, `3/4`, `1`), aguja de playhead, readout numérico (`-14.2 dB`) y posición de compás (`1.2.3`).
 6. **Medición (`LEVEL`):** Medidores de nivel de entrada (`IN`) y salida (`OUT`) integrados con escala `-6`, `-12`, `-24`, `-48 dB`.
 7. **Doble Vista:** Ventana completa (`960 x 600 px`) y vista compacta (`560 x 368 px`) para pantallas pequeñas o sesiones con múltiples plugins abiertos.

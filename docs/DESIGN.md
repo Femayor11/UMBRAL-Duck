@@ -44,17 +44,17 @@ Fuentes con licencia abierta (OFL) embebidas en el binario:
 - `Panel padding`: `14 px`.
 - `Control height`: `32 px` / `36 px`.
 - `Knob sweep`: `270°`.
-- `Curve stroke`: `2.5 px` en color `Signal` (`#C9F04B`), con relleno semitransparente bajo la atenuación hacia `0 dB`.
+- `Curve stroke`: `2.5 px` en color `Signal` (`#C9F04B`), con relleno bajo la atenuación hacia `0 dB` en `Signal` con alpha `0.15`.
 - `Shadows / glow`: `none`.
 - `Gradients`: `none`.
 
 ## 6. Estados de Componentes
 - **Rate Button (`1/8`, `1/4`, `1/2`, `1/1`):**
   - `Normal`: fondo `Raised`, borde `Hairline`, texto `Bone`.
-  - `Hover`: borde iluminado suave, texto `Bone`.
-  - `Active`: fondo sólido `Signal` (`#C9F04B`), texto oscuro `#131311`.
+  - `Hover`: borde = mezcla 50% `Hairline` + 50% `Muted` (alternativa: `Bone` con alpha `0.35`), texto `Bone`.
+  - `Active`: fondo sólido `Signal` (`#C9F04B`), texto `Umbra` (`#131311`).
   - `Focus`: anillo exterior de `1 px` en color `Signal`.
-  - `Disabled`: opacidad reducida, texto `Muted`.
+  - `Disabled`: opacidad `0.40`, texto `Muted`.
 - **Sync Toggle (`SYNC`):**
   - `Free (own BPM)`: fondo `Raised`, texto `Muted`, campo numérico de `BPM` editable manualmente.
   - `Locked to DAW`: borde en `Signal`, texto en `Signal`, `BPM` gobernado por el host.
@@ -67,5 +67,5 @@ Fuentes con licencia abierta (OFL) embebidas en el binario:
 ## 7. Visualizador (`GAIN RESPONSE`) y Medidores (`LEVEL`)
 - **Eje Y:** Escala en decibelios con marcas en `0`, `-6`, `-12`, `-18` y `-24 dB`.
 - **Eje X:** Ciclo normalizado con marcas en `0`, `1/4`, `1/2`, `3/4` y `1`.
-- **Playhead:** Línea vertical blanca/hueso de `1 px` que recorre la fase actual `[0, 1)` mediante lectura de snapshot atómico a 60 Hz, más lectura de posición musical (`1.2.3`) y reducción instantánea en dB (`-14.2 dB`).
-- **Level Meters (`IN` / `OUT`):** Medidores verticales de pico/RMS con marcas en `-6`, `-12`, `-24`, `-48 dB`, alimentados mediante variables atómicas libres de bloqueo desde el procesador.
+- **Playhead:** Línea vertical de `1 px` en token `Bone` (`#ECE8DC`) que recorre la fase actual `[0, 1)` mediante lectura de snapshot atómico a 60 Hz, más lectura de posición musical (`1.2.3`) y reducción instantánea en dB (`-14.2 dB`).
+- **Level Meters (`IN` / `OUT`):** Medidores verticales de solo Pico (Peak, con decaimiento balístico) con marcas en `-6`, `-12`, `-24`, `-48 dB`, alimentados mediante variables atómicas libres de bloqueo desde el procesador.
