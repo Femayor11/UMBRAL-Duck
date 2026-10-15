@@ -4,8 +4,8 @@
   "configurePresets": [
     {
       "name": "windows-msvc",
-      "displayName": "Windows MSVC (VS 2022, usado por CI)",
-      "generator": "Visual Studio 17 2022",
+      "displayName": "Windows MSVC (VS 18 2026)",
+      "generator": "Visual Studio 18 2026",
       "architecture": "x64",
       "binaryDir": "${sourceDir}/build"
     },

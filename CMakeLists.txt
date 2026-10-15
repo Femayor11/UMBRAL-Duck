@@ -37,7 +37,7 @@ target_sources(UmbralDuck PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp")
 
-target_include_directories(UmbralDuck PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+target_include_directories(UmbralDuck PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
 target_compile_definitions(UmbralDuck PUBLIC
     JUCE_WEB_BROWSER=0
@@ -45,9 +45,8 @@ target_compile_definitions(UmbralDuck PUBLIC
     JUCE_VST3_CAN_REPLACE_VST2=0)
 
 target_link_libraries(UmbralDuck
-    PRIVATE
-        juce::juce_audio_utils
     PUBLIC
+        juce::juce_audio_utils
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags)
@@ -61,9 +60,13 @@ endif()
 # Pruebas
 enable_testing()
 add_executable(UmbralDuckTests
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/SmokeTests.cpp")
-target_include_directories(UmbralDuckTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
-target_link_libraries(UmbralDuckTests PRIVATE Catch2::Catch2WithMain)
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/SmokeTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PassThroughTests.cpp")
+target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
+target_link_libraries(UmbralDuckTests
+    PRIVATE
+        UmbralDuck
+        Catch2::Catch2WithMain)
 if(MSVC)
     target_compile_options(UmbralDuckTests PRIVATE /W4 /WX)
 else()

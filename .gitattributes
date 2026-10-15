@@ -1,0 +1,16 @@
+# Auto detect text files and perform LF normalization on checkout
+* text=auto eol=lf
+
+# Explicit source code files
+*.cpp text eol=lf
+*.h text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+
+# Binary files
+*.ttf binary
+*.pdf binary
+*.png binary
+*.ico binary

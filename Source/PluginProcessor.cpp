@@ -19,10 +19,16 @@ bool UmbralDuckProcessor::isBusesLayoutSupported (const BusesLayout& layouts) co
     return out == layouts.getMainInputChannelSet();
 }
 
-void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>&, juce::MidiBuffer&)
+void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
-    // Pass-through: el buffer se deja intacto.
+    const auto totalNumInputChannels  = getTotalNumInputChannels();
+    const auto totalNumOutputChannels = getTotalNumOutputChannels();
+
+    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
+        buffer.clear (i, 0, buffer.getNumSamples());
+
+    midiMessages.clear();
 }
 
 juce::AudioProcessorEditor* UmbralDuckProcessor::createEditor()

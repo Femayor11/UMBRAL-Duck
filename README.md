@@ -20,15 +20,15 @@ Windows x86_64, VST3, JUCE 8.x, C++20 y CMake >=3.22. Un plugin que modula la ga
 ## Construcción
 Requisitos (Windows x64): Visual Studio Build Tools con C++ (verificado con MSVC 19.51 / VS 18 Build Tools), CMake >= 3.22 y Git. JUCE `8.0.15` y Catch2 `v3.9.1` se descargan por FetchContent (versiones fijadas en `CMakeLists.txt`). La primera configuración tarda varios minutos.
 
-Local (verificado), desde una terminal con el entorno de VS cargado (`VsDevCmd.bat -arch=x64`):
+Local (verificado con MSVC y generador Visual Studio 18 2026):
 
 ```powershell
-cmake --preset windows-ninja
-cmake --build --preset ninja-release
-ctest --preset ninja-release
+cmake --preset windows-msvc
+cmake --build --preset release
+ctest --preset release
 ```
 
-El `.vst3` queda en `build-ninja/UmbralDuck_artefacts/Release/VST3/`. El preset `windows-msvc` (generador Visual Studio 17 2022) es el que usa el CI y **aún no se ha verificado**.
+El `.vst3` queda en `build/UmbralDuck_artefacts/Release/VST3/`. Para desarrollo y pruebas con depuración se puede usar `--preset debug`.
 
 ## Política de distribución
 Gratuito para el usuario final. El proyecto se documenta bajo GPLv3/AGPLv3, compatible con JUCE 8 Open Source; la auditoría final de licencias y avisos de terceros queda para T-14. No utilizar nombres, logos, capturas ni curvas extraídas de productos comerciales.
