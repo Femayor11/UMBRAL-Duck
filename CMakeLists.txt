@@ -35,7 +35,8 @@ juce_add_plugin(UmbralDuck
 
 target_sources(UmbralDuck PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/CurveBank.cpp")
 
 target_include_directories(UmbralDuck PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Source")
 
@@ -61,7 +62,8 @@ endif()
 enable_testing()
 add_executable(UmbralDuckTests
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/SmokeTests.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PassThroughTests.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PassThroughTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/DSPTests.cpp")
 target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
 target_link_libraries(UmbralDuckTests
     PRIVATE

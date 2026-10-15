@@ -11,6 +11,8 @@ Antes de escribir código, lee siempre:
 
 ## Stack y Límites Técnicos
 - C++20, JUCE 8.x, CMake >= 3.22, Catch2 v3.
+- Ruta local de CMake/CTest en este equipo: `C:\Program Files (x86)\Microsoft Visual Studio\18\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin`.
+- En `Tests/`, escribir siempre los nombres de `TEST_CASE` y `SECTION` en ASCII puro (sin tildes ni eñes) para evitar fallos de codificación de CTest en Windows.
 - **Prohibido en `processBlock` (Audio Thread):** `new`, `delete`, `malloc`, `std::vector::push_back/resize`, `std::mutex`, locks, I/O de disco, logging o llamadas a componentes UI.
 - **Prohibido en general:** Añadir librerías externas sin autorización explícita, cambiar IDs de parámetros publicados o acoplar `Source/DSP/` con `Source/UI/`.
 

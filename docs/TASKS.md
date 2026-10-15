@@ -3,7 +3,7 @@
 
 - [x] **T-01 Entorno reproducible.** Fijar JUCE 8.x exacto, compilador, CMake, dependencias/licencias, comandos de build/test, `DesignTokens.h` y README. **Aceptar:** proyecto VST3 vacío compila desde clon limpio en Windows; CI básico ejecuta build.
 - [x] **T-02 Pass-through.** Processor con buses mono/estéreo, sin DSP. **Aceptar:** audio in/out idéntico en condiciones nominales; prueba en host.
-- [ ] **T-03 Curvas puras.** Motor de nodos, interpolación (`smoothstep`, `SLOPE` como `t' = t^p`) y las 11 curvas operativas (01–11) más el slot 12 `Custom` que delega a `01 Classic`, según DSP_SPEC. **Aceptar:** extremos, valores finitos, límites y puntos esperados cubiertos por tests.
+- [x] **T-03 Curvas puras.** Motor de nodos, interpolación (`smoothstep`, `SLOPE` como `t' = t^p`) y las 11 curvas operativas (01–11) más el slot 12 `Custom` que delega a `01 Classic`, según DSP_SPEC. **Aceptar:** extremos, valores finitos, límites y puntos esperados cubiertos por tests.
 - [ ] **T-04 Ganancia y parámetros.** Implementar la ganancia con `MIX` (sin Depth, decisión cerrada); layout APVTS de 9 parámetros. **Aceptar:** identidad en cero, fórmula y automatización verificadas.
 - [ ] **T-05 Fase matemática.** PPQ, BPM, subdivisiones, 1 Bar y compases no 4/4. **Aceptar:** tests 3/4, 6/8, posiciones negativas, tasas y tamaños de bloque.
 - [ ] **T-06 Transporte.** Host playing/stopped/unknown, seek, loop y reloj interno explícito. **Aceptar:** pruebas deterministas y salida segura sin datos.

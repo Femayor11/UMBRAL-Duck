@@ -20,6 +20,11 @@
 - **Tokens derivados:** texto activo `Umbra`; hover = 50% `Hairline` + 50% `Muted`; disabled `0.40`; playhead `Bone`; relleno de curva `Signal` alpha `0.15`.
 - **Fuentes:** se embebe también `Archivo-Light.ttf` (peso 300); fallback a fuentes del sistema mientras falten los `.ttf`.
 
+## 2026-10-15 — Curvas puras (T-03)
+- **Interpolación:** `smoothstep` en todos los segmentos; `lerp` queda como helper puro en `MathUtils.h`. Segmentos con `dx <= 1e-6` saltan al valor del segundo nodo (sin división). `11 Step`: `phi < 0.5 -> 0`, `phi >= 0.5 -> 1`.
+- **Responsabilidades:** `evaluateNodes(nodes, phi, slope)` acota `phi` a [0,1] (`phi = 1` devuelve el último nodo exacto); `evaluate(curve, phi, shift, slope)` aplica `frac(phi - shift)` antes (por tanto `phi = 1` se envuelve a 0).
+- **Seguridad:** `phi`/`shift` no finitos -> `0.0f`; `slope` no finito -> `0.5f`. Índice de curva fuera de rango se acota a 0..11.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.
