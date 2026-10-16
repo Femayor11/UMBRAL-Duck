@@ -20,18 +20,24 @@ namespace
 UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
+      controlStrip (p.getAPVTS()),
       gainResponseView (p.getUiSnapshot(), makeParameterSource (p)),
       levelMeters (p.getUiSnapshot()),
+      channelsSelector (p.getAPVTS()),
       viewModeButton ("COMPACT")
 {
     setLookAndFeel (&lookAndFeel);
+
+    levelMeters.setChannelsSectionOffset (umbral::tokens::channelsSectionHeight);
 
     viewModeButton.setClickingTogglesState (false);
     viewModeButton.getProperties().set (umbral::ui::UmbralLookAndFeel::kOutlineActiveStyleProperty, true);
     viewModeButton.onClick = [this]() { toggleViewMode(); };
 
+    addAndMakeVisible (controlStrip);
     addAndMakeVisible (gainResponseView);
     addAndMakeVisible (levelMeters);
+    addAndMakeVisible (channelsSelector);
     addAndMakeVisible (viewModeButton);
 
     setResizable (false, false);
@@ -63,7 +69,9 @@ void UmbralDuckEditor::applyViewMode (bool compact, bool persistToProcessor)
     if (persistToProcessor)
         processorRef.setCompactView (compact);
 
+    controlStrip.setCompactMode (compact);
     levelMeters.setVisible (! compact);
+    channelsSelector.setVisible (! compact);
     gainResponseView.setBarPillVisible (! compact);
 
     viewModeButton.setToggleState (compact, juce::dontSendNotification);
@@ -122,11 +130,20 @@ void UmbralDuckEditor::resized()
         const int buttonY     = (t::compactHeaderDividerY - t::viewToggleHeight) / 2;
         viewModeButton.setBounds (headerRight - t::viewToggleWidth, buttonY, t::viewToggleWidth, t::viewToggleHeight);
 
-        // Cuadricula Compact (DESIGN.md §5): panel izquierdo GAIN RESPONSE (350 x 279 en x = 16, y = 65)
+        // Cuadricula Compact (DESIGN.md §5):
+        // Panel izquierdo GAIN RESPONSE (350 x 279 en x = 16, y = 65)
+        // Panel derecho CURVE & MIX (160 x 279 en x = 382, y = 65)
+        const int rightX = t::windowPaddingCompact + t::compactLeftPanelWidth + t::panelGapCompact;
+
         gainResponseView.setBounds (t::windowPaddingCompact,
                                     t::compactContentTop,
                                     t::compactLeftPanelWidth,
                                     t::compactPanelRowHeight);
+
+        controlStrip.setBounds (rightX,
+                                t::compactContentTop,
+                                t::compactRightPanelWidth,
+                                t::compactPanelRowHeight);
     }
     else
     {
@@ -138,7 +155,9 @@ void UmbralDuckEditor::resized()
         const int centerX = t::windowPadding + t::fullLeftPanelWidth + t::panelGap;
         const int rightX  = centerX + t::fullCenterPanelWidth + t::panelGap;
 
+        controlStrip.setBounds (t::windowPadding, t::fullContentTop, t::fullLeftPanelWidth, t::fullPanelRowHeight);
         gainResponseView.setBounds (centerX, t::fullContentTop, t::fullCenterPanelWidth, t::fullPanelRowHeight);
         levelMeters.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::fullPanelRowHeight);
+        channelsSelector.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::channelsSectionHeight);
     }
 }

@@ -35,6 +35,10 @@ namespace umbral::ui
             return isInput ? inputBar : outputBar;
         }
 
+        // Reserva la franja superior del panel derecho para el bloque CHANNELS y su separador Hairline (DESIGN.md §5).
+        void setChannelsSectionOffset (int offsetPx);
+        [[nodiscard]] int getChannelsSectionOffset() const noexcept { return channelsSectionOffset; }
+
     private:
         void timerCallback() override { refresh(); }
 
@@ -45,6 +49,7 @@ namespace umbral::ui
 
         float inputDb  = UiStateSnapshot::kMinDb;
         float outputDb = UiStateSnapshot::kMinDb;
+        int channelsSectionOffset = 0;
 
         juce::Rectangle<float> panelBounds;
         juce::Rectangle<float> headerArea;

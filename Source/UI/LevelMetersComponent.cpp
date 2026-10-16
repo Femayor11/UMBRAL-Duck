@@ -37,11 +37,26 @@ namespace umbral::ui
         return (clamped - tokens::meterMinDb) / (0.0f - tokens::meterMinDb);
     }
 
+    void LevelMetersComponent::setChannelsSectionOffset (int offsetPx)
+    {
+        const int clamped = std::max (0, offsetPx);
+        if (channelsSectionOffset != clamped)
+        {
+            channelsSectionOffset = clamped;
+            resized();
+            repaint();
+        }
+    }
+
     void LevelMetersComponent::resized()
     {
         panelBounds = getLocalBounds().toFloat();
 
-        auto inner = panelBounds.reduced (static_cast<float> (tokens::panelPadding));
+        auto levelSection = panelBounds;
+        if (channelsSectionOffset > 0 && panelBounds.getHeight() > static_cast<float> (channelsSectionOffset))
+            levelSection.removeFromTop (static_cast<float> (channelsSectionOffset) + tokens::borderWidth);
+
+        auto inner = levelSection.reduced (static_cast<float> (tokens::panelPadding));
         headerArea = inner.removeFromTop (static_cast<float> (tokens::meterHeaderHeight));
 
         auto labelRow = inner.removeFromBottom (static_cast<float> (tokens::meterLabelHeight));
@@ -94,6 +109,15 @@ namespace umbral::ui
         g.setColour (tokens::hairline);
         g.drawRoundedRectangle (panelBounds.reduced (tokens::borderWidth * 0.5f), tokens::radius,
                                 tokens::borderWidth);
+
+        if (channelsSectionOffset > 0 && panelBounds.getHeight() > static_cast<float> (channelsSectionOffset))
+        {
+            const float dividerY = static_cast<float> (channelsSectionOffset);
+            g.fillRect (panelBounds.getX() + tokens::borderWidth,
+                        dividerY,
+                        std::max (0.0f, panelBounds.getWidth() - tokens::borderWidth * 2.0f),
+                        tokens::borderWidth);
+        }
 
         g.setFont (headerFont);
         g.setColour (tokens::muted);

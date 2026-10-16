@@ -1,12 +1,13 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "UI/ControlStrip.h"
 #include "UI/GainResponseView.h"
 #include "UI/LevelMetersComponent.h"
 #include "UI/UmbralLookAndFeel.h"
 
-// T-10 / T-11: soporte de doble vista fija Full (960x600) y Compact (560x360),
-// alternancia de modo y persistencia de isCompactView en el estado del plugin.
+// T-10 / T-11 / T-12: soporte de doble vista fija Full (960x600) y Compact (560x360),
+// alternancia de modo, persistencia de isCompactView y paneles ControlStrip + ChannelsSelector.
 class UmbralDuckEditor final : public juce::AudioProcessorEditor,
                                private juce::ValueTree::Listener
 {
@@ -21,6 +22,10 @@ public:
     void toggleViewMode();
     [[nodiscard]] bool isCompactView() const noexcept { return compactView; }
 
+    [[nodiscard]] umbral::ui::ControlStrip& getControlStrip() noexcept { return controlStrip; }
+    [[nodiscard]] const umbral::ui::ControlStrip& getControlStrip() const noexcept { return controlStrip; }
+    [[nodiscard]] umbral::ui::ChannelsSelector& getChannelsSelector() noexcept { return channelsSelector; }
+    [[nodiscard]] const umbral::ui::ChannelsSelector& getChannelsSelector() const noexcept { return channelsSelector; }
     [[nodiscard]] umbral::ui::GainResponseView& getGainResponseView() noexcept { return gainResponseView; }
     [[nodiscard]] const umbral::ui::GainResponseView& getGainResponseView() const noexcept { return gainResponseView; }
     [[nodiscard]] umbral::ui::LevelMetersComponent& getLevelMeters() noexcept { return levelMeters; }
@@ -36,8 +41,10 @@ private:
 
     UmbralDuckProcessor& processorRef;
     umbral::ui::UmbralLookAndFeel lookAndFeel;
+    umbral::ui::ControlStrip controlStrip;
     umbral::ui::GainResponseView gainResponseView;
     umbral::ui::LevelMetersComponent levelMeters;
+    umbral::ui::ChannelsSelector channelsSelector;
     juce::TextButton viewModeButton;
     bool compactView = false;
 

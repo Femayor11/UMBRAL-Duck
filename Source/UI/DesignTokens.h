@@ -70,12 +70,23 @@ namespace umbral::tokens
     inline constexpr float graphPillWidth       = 44.0f; // Pastilla "1.2.3" sobre el playhead
     inline constexpr float graphPillHeight      = 18.0f;
 
-    // --- Panel LEVEL ---
+    // --- Panel LEVEL & CHANNELS ---
     inline constexpr float meterMinDb           = -48.0f;  // Base de la escala de los medidores
     inline constexpr int   meterHeaderHeight    = 20;
     inline constexpr int   meterLabelHeight     = 16;      // Fila de etiquetas IN / OUT
     inline constexpr int   meterBarWidth        = 14;
     inline constexpr int   meterScaleWidth      = 34;      // Columna central de escala dB
+    inline constexpr int   channelsSectionHeight = 82;     // Altura del bloque superior CHANNELS en panel derecho
+
+    // --- Panel CURVE & KNOBS (ControlStrip) ---
+    inline constexpr int   curveSectionHeight    = 82;     // Altura del bloque superior CURVE (Full y Compact)
+    inline constexpr int   mixSectionHeightFull  = 166;    // Altura del bloque central MIX en vista Full
+    inline constexpr int   knobMixDiameter       = 80;     // Diametro de perilla principal MIX (DESIGN.md §5)
+    inline constexpr int   knobSecondaryDiameter = 44;     // Diametro de perillas SHIFT y SLOPE (DESIGN.md §5)
+    inline constexpr int   knobHeaderHeight      = 16;     // Altura de fila de encabezado de seccion
+    inline constexpr int   mixReadoutHeight      = 24;     // Altura de lectura numerica de MIX (21 px)
+    inline constexpr int   secondaryReadoutHeight = 16;    // Altura de lectura numerica de SHIFT / SLOPE (13 px)
+    inline constexpr int   segmentedButtonGap    = 4;      // Separacion entre botones Stereo y Mono
 
     // --- Jerarquía Tipográfica (px) (docs/DESIGN.md §4) ---
     inline constexpr float brandSize            = 19.0f;  // Archivo 800/300, tracking +0.04em
