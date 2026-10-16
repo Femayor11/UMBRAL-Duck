@@ -39,6 +39,7 @@ target_sources(UmbralDuck PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/CurveBank.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/DuckingEngine.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/PhaseClock.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/TransportClock.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/Parameters/ParameterLayout.cpp")
 
 target_include_directories(UmbralDuck PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/Source")
@@ -68,7 +69,8 @@ add_executable(UmbralDuckTests
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PassThroughTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/DSPTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainAndParametersTests.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PhaseClockTests.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PhaseClockTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/TransportClockTests.cpp")
 target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
 target_link_libraries(UmbralDuckTests
     PRIVATE

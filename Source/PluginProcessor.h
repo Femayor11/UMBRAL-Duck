@@ -2,7 +2,9 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "DSP/DuckingEngine.h"
+#include "DSP/TransportClock.h"
 #include <atomic>
+#include <vector>
 
 class UmbralDuckProcessor final : public juce::AudioProcessor
 {
@@ -51,6 +53,10 @@ private:
     std::atomic<float>* bypassParam   = nullptr;
 
     umbral::dsp::DuckingEngine duckingEngine;
+    umbral::dsp::TransportClock transportClock;
+
+    // Fases por muestra preasignadas (constructor/prepareToPlay); processBlock nunca redimensiona.
+    std::vector<float> phaseBuffer = std::vector<float> (4096, 0.0f);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UmbralDuckProcessor)
 };

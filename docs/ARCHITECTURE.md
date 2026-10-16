@@ -52,6 +52,8 @@ UMBRAL-Duck/
       CurveBank.cpp
       PhaseClock.h
       PhaseClock.cpp
+      TransportClock.h
+      TransportClock.cpp
       DuckingEngine.h
       DuckingEngine.cpp
       GainSmoother.h

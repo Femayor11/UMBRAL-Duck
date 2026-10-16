@@ -36,6 +36,14 @@
 - **Subdivisiones y anclaje (`anchor`):** `1/8` (`0.5`), `1/4` (`1.0`), `1/2` (`2.0`) se anclan a la cuadrícula `PPQ = 0.0`. `1/1` (`OneBar`, `L = N * 4.0 / D` con fallback a `4/4` si `N <= 0` o `D <= 0`) se ancla a `barStartPpq` cuando `hasBarStartPpq` es verdadero y finito, o a `0.0` en su ausencia.
 - **Lectura musical (`BarBeatTick`):** calcula `bar.beat.subdivision` (1-indexado, pulso de longitud `4.0 / D` negras y subdivisión en 4 partes por pulso) soportando compases `4/4`, `3/4`, `6/8` y PPQ negativos.
 
+## 2026-10-16 — Transporte (T-06)
+- **Módulo:** `TransportClock` (`Source/DSP/TransportClock.h/.cpp`), puro y `noexcept`, sin JUCE. `PluginProcessor` convierte `juce::AudioPlayHead::PositionInfo` a `HostTransport` y delega en `fillBlockPhases` (T-05).
+- **Modos:** `Locked` (SYNC on, host reproduciendo con ppq válido), `Free` (SYNC off: acumulador `double` interno, `dt = 1/fs`, solo parámetro `bpm`; independiente del host) y `Bypass` (SYNC on con host detenido, sin PlayHead o sin ppq finito).
+- **Bypass:** fase congelada en la última válida; el Processor fuerza `mix = 0` hacia `DuckingEngine` (G = 1.0 exacto, salida Stereo bit-identical). No se usa `params.bypass` para conservar el downmix del modo `Mono`. La rampa anti-clic queda para T-07.
+- **BPM:** en `Locked` manda el tempo del host; si no es válido (ausente, NaN, <= 0) se usa el parámetro `bpm`.
+- **Continuidad:** `Locked` actualiza el acumulador libre, así que `Locked -> Free` no salta. Seek y loop se resuelven desde el ppq del host en cada bloque.
+- **Memoria:** `phaseBuffer` se preasigna (4096 en el constructor, `prepareToPlay` lo ajusta a `samplesPerBlock`). Si el host entrega un bloque mayor, `processBlock` lo procesa en tramos sin redimensionar; `sampleOffset` mantiene el ppq continuo entre tramos.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.

@@ -20,7 +20,12 @@ UmbralDuckProcessor::UmbralDuckProcessor()
     bypassParam   = apvts.getRawParameterValue (umbral::params::rawIDs::bypass);
 }
 
-void UmbralDuckProcessor::prepareToPlay (double, int) {}
+void UmbralDuckProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+{
+    phaseBuffer.assign (static_cast<size_t> (juce::jmax (samplesPerBlock, 1)), 0.0f);
+    transportClock.prepare (sampleRate);
+}
+
 void UmbralDuckProcessor::releaseResources() {}
 
 bool UmbralDuckProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -55,15 +60,72 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
         static_cast<int> (channelsParam->load (std::memory_order_relaxed)));
     params.bypass     = bypassParam->load (std::memory_order_relaxed) > 0.5f;
 
-    // T-04: Mientras no exista PhaseClock (T-05), evalua en phase = 0.0f por defecto.
-    // Con la curva por defecto 03 Smooth, C(0.0f) == 1.0f, preservando pass-through exacto.
-    const float phase = 0.0f;
+    // T-06: transporte. Lectura del PlayHead (JUCE 8: Optional<PositionInfo>), sin allocations.
+    umbral::dsp::HostTransport host;
+    if (auto* hostPlayHead = getPlayHead())
+    {
+        if (const auto position = hostPlayHead->getPosition())
+        {
+            host.hasInfo   = true;
+            host.isPlaying = position->getIsPlaying();
 
-    duckingEngine.process (buffer.getArrayOfWritePointers(),
-                           totalNumInputChannels,
-                           numSamples,
-                           params,
-                           phase);
+            if (const auto ppq = position->getPpqPosition())
+            {
+                host.hasPpq = true;
+                host.ppq    = *ppq;
+            }
+            if (const auto bpm = position->getBpm())
+            {
+                host.hasBpm = true;
+                host.bpm    = *bpm;
+            }
+            if (const auto ts = position->getTimeSignature())
+            {
+                host.hasTimeSig = true;
+                host.timeSig    = { ts->numerator, ts->denominator };
+            }
+            if (const auto barStart = position->getPpqPositionOfLastBarStart())
+            {
+                host.hasBarStartPpq = true;
+                host.barStartPpq    = *barStart;
+            }
+        }
+    }
+
+    const bool sync        = syncParam->load (std::memory_order_relaxed) > 0.5f;
+    const double paramBpm  = static_cast<double> (bpmParam->load (std::memory_order_relaxed));
+    const auto rate        = umbral::dsp::rateFromIndex (static_cast<int> (rateParam->load (std::memory_order_relaxed)));
+    const float baseMix    = params.mix;
+
+    // Procesa en tramos del tamano preasignado en prepareToPlay (nunca redimensiona aqui).
+    const auto capacity = static_cast<int> (phaseBuffer.size());
+    if (capacity <= 0)
+        return;
+
+    float* const* channelPointers = buffer.getArrayOfWritePointers();
+    float* chunkPointers[2] = { nullptr, nullptr };
+    const int numChannels = juce::jmin (totalNumInputChannels, 2);
+
+    for (int start = 0; start < numSamples; start += capacity)
+    {
+        const int chunk = juce::jmin (capacity, numSamples - start);
+        const std::span<float> phases (phaseBuffer.data(), static_cast<size_t> (chunk));
+
+        const auto result = transportClock.process (sync, host, paramBpm, rate, phases, start);
+
+        // SYNC on sin reproduccion o sin datos: ganancia exactamente 1.0 (mix = 0 -> G = 1),
+        // salida bit-identica en Stereo y se conserva el downmix en modo Mono.
+        params.mix = (result.mode == umbral::dsp::TransportMode::Bypass) ? 0.0f : baseMix;
+
+        for (int ch = 0; ch < numChannels; ++ch)
+            chunkPointers[ch] = channelPointers[ch] + start;
+
+        duckingEngine.process (chunkPointers,
+                               numChannels,
+                               chunk,
+                               params,
+                               std::span<const float> (phaseBuffer.data(), static_cast<size_t> (chunk)));
+    }
 }
 
 void UmbralDuckProcessor::getStateInformation (juce::MemoryBlock& destData)
