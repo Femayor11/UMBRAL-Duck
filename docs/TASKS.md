@@ -8,7 +8,7 @@
 - [x] **T-05 Fase matemática.** PPQ, BPM, subdivisiones, 1 Bar y compases no 4/4. **Aceptar:** tests 3/4, 6/8, posiciones negativas, tasas y tamaños de bloque.
 - [x] **T-06 Transporte.** Host playing/stopped/unknown, seek, loop y reloj interno explícito. **Aceptar:** pruebas deterministas y salida segura sin datos.
 - [x] **T-07 Suavizado.** Rampas para cambios de curva, ganancia, bypass y wrap, con suavizado para minimizar discontinuidades audibles. **Aceptar:** mediciones y escucha en múltiples BPM/sample rates; no prometer cero clics sin pruebas.
-- [ ] **T-08 Estado y automatización.** Guardado/restauración APVTS e IDs. **Aceptar:** reabrir proyecto reproduce parámetros; automatización no bloquea callback.
+- [x] **T-08 Estado y automatización.** Guardado/restauración APVTS e IDs. **Aceptar:** reabrir proyecto reproduce parámetros; automatización no bloquea callback.
 - [x] **T-09 Wireframe e identidad.** Distribución, tokens y estados aprobados (`DESIGN.md` + PDF de rediseño). **Aceptar:** `DESIGN.md` actualizado.
 - [ ] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
 - [ ] **T-11 Pruebas integradas.** Validar bloques variables, canales, transporte, offline y casos límite. **Aceptar:** informe reproducible de tests y fallos resueltos o explícitos.

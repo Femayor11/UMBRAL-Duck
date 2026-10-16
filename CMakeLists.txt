@@ -72,7 +72,8 @@ add_executable(UmbralDuckTests
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainAndParametersTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PhaseClockTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/TransportClockTests.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainSmootherTests.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainSmootherTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/UiStateSnapshotTests.cpp")
 target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
 target_link_libraries(UmbralDuckTests
     PRIVATE

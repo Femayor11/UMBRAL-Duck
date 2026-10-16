@@ -1,7 +1,9 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "Common/UiStateSnapshot.h"
 #include "DSP/DuckingEngine.h"
+#include "DSP/LevelMeterSource.h"
 #include "DSP/TransportClock.h"
 #include <atomic>
 #include <vector>
@@ -38,6 +40,9 @@ public:
     juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }
 
+    [[nodiscard]] umbral::UiStateData getUiStateSnapshot() const noexcept { return uiSnapshot.read(); }
+    [[nodiscard]] const umbral::UiStateSnapshot& getUiSnapshot() const noexcept { return uiSnapshot; }
+
 private:
     juce::AudioProcessorValueTreeState apvts;
 
@@ -54,6 +59,8 @@ private:
 
     umbral::dsp::DuckingEngine duckingEngine;
     umbral::dsp::TransportClock transportClock;
+    umbral::dsp::LevelMeterSource levelMeterSource;
+    umbral::UiStateSnapshot uiSnapshot;
 
     // Fases por muestra preasignadas (constructor/prepareToPlay); processBlock nunca redimensiona.
     std::vector<float> phaseBuffer = std::vector<float> (4096, 0.0f);

@@ -50,7 +50,11 @@
 - **Snap y arranque limpio:** cuando $|x[n] - y[n]| \le 10^{-6}$, el estado hace *snap* exacto al objetivo (preservando ganancia `1.0f` bit-idéntica en reposo/bypass). `resetToNextSample()` permite que la primera muestra tras `prepareToPlay` o `reset` fije el nivel inicial sin rampa artificial de arranque.
 - **Integración y métricas:** `DuckingEngine` aplica `GainSmoother` muestra a muestra sobre `computeGain` y en las rampas de `bypass` (preservando los canales originales cuando `bypass` está activo). Las pruebas en `Tests/GainSmootherTests.cpp` verifican cuantitativamente el tiempo de asentamiento (`1–2 ms`) y la cota de diferencia máxima entre muestras consecutivas ($\Delta G_{\max} \le \alpha$) en `11 Step`, wrap de `05 Reverse`, cambios de `mix`/`bypass` y paradas de transporte entre `44.1 kHz` y `192 kHz` y `40–240 BPM`.
 
+## 2026-10-16 — Estado, automatización y snapshot atómico (T-08)
+- **Snapshot lock-free (`Processor -> UI`):** `UiStateSnapshot` (`Source/Common/UiStateSnapshot.h`), libre de JUCE y `noexcept`, transfiere `currentPhase` ($[0, 1)$), `currentGainDb` ($[-60, 0]\text{ dB}$), `barBeatTick` (`BarBeatTick` empaquetado en `std::atomic<uint64_t>` para evitar *torn reads*) y niveles `inputLevelDb` / `outputLevelDb` ($[-60, 0]\text{ dB}$) con semántica `memory_order_release` / `memory_order_acquire` en el cierre del bloque.
+- **Balística de medidores Peak (`IN` / `OUT`):** `LevelMeterSource` (`Source/DSP/LevelMeterSource.h`), 100% libre de JUCE y `noexcept`, mide el pico lineal por bloque antes y después del procesamiento de ducking con ataque instantáneo y decaimiento exponencial suave ($\tau = 300\text{ ms}$, $\approx 28.9\text{ dB/s}$), con *snap* al piso de $-60\text{ dB}$ ($10^{-3}$).
+- **Persistencia APVTS:** verificado mediante pruebas de roundtrip XML (`getStateInformation` / `setStateInformation`) que los 9 parámetros del contrato y las propiedades de UI en el `ValueTree` (como `compactMode`) se restauran produciendo audio y snapshots idénticos.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.
-

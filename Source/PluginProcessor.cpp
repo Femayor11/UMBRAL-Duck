@@ -25,11 +25,15 @@ void UmbralDuckProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
     phaseBuffer.assign (static_cast<size_t> (juce::jmax (samplesPerBlock, 1)), 0.0f);
     transportClock.prepare (sampleRate);
     duckingEngine.prepare (sampleRate);
+    levelMeterSource.prepare (sampleRate);
+    uiSnapshot.reset();
 }
 
 void UmbralDuckProcessor::releaseResources()
 {
     duckingEngine.reset();
+    levelMeterSource.reset();
+    uiSnapshot.reset();
 }
 
 bool UmbralDuckProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
@@ -106,20 +110,25 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     if (capacity <= 0)
         return;
 
+    const int numChannels = juce::jmin (totalNumInputChannels, 2);
+
+    // T-08: Medicion Peak de entrada (IN) antes del procesamiento de ducking.
+    const float inLevelDb = levelMeterSource.processInput (buffer.getArrayOfReadPointers(), numChannels, numSamples);
+
     float* const* channelPointers = buffer.getArrayOfWritePointers();
     float* chunkPointers[2] = { nullptr, nullptr };
-    const int numChannels = juce::jmin (totalNumInputChannels, 2);
+    umbral::dsp::TransportResult lastResult;
 
     for (int start = 0; start < numSamples; start += capacity)
     {
         const int chunk = juce::jmin (capacity, numSamples - start);
         const std::span<float> phases (phaseBuffer.data(), static_cast<size_t> (chunk));
 
-        const auto result = transportClock.process (sync, host, paramBpm, rate, phases, start);
+        lastResult = transportClock.process (sync, host, paramBpm, rate, phases, start);
 
         // SYNC on sin reproduccion o sin datos: ganancia exactamente 1.0 (mix = 0 -> G = 1),
         // salida bit-identica en Stereo y se conserva el downmix en modo Mono.
-        params.mix = (result.mode == umbral::dsp::TransportMode::Bypass) ? 0.0f : baseMix;
+        params.mix = (lastResult.mode == umbral::dsp::TransportMode::Bypass) ? 0.0f : baseMix;
 
         for (int ch = 0; ch < numChannels; ++ch)
             chunkPointers[ch] = channelPointers[ch] + start;
@@ -130,6 +139,11 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
                                params,
                                std::span<const float> (phaseBuffer.data(), static_cast<size_t> (chunk)));
     }
+
+    // T-08: Medicion Peak de salida (OUT) y publicacion atomica lock-free para la UI.
+    const float outLevelDb        = levelMeterSource.processOutput (buffer.getArrayOfReadPointers(), numChannels, numSamples);
+    const float currentGainLinear = duckingEngine.getGainSmoother().getCurrentValue();
+    uiSnapshot.publishFromLinearGain (lastResult.endPhase, currentGainLinear, lastResult.tick, inLevelDb, outLevelDb);
 }
 
 void UmbralDuckProcessor::getStateInformation (juce::MemoryBlock& destData)
