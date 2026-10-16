@@ -28,7 +28,7 @@ namespace umbral::tokens
     inline constexpr int   windowFullWidth      = 960;
     inline constexpr int   windowFullHeight     = 600;
     inline constexpr int   windowCompactWidth   = 560;
-    inline constexpr int   windowCompactHeight  = 368;
+    inline constexpr int   windowCompactHeight  = 360;
     inline constexpr float radius               = 4.0f;
     inline constexpr float borderWidth          = 1.0f;
     inline constexpr int   windowPadding        = 20;
@@ -43,6 +43,29 @@ namespace umbral::tokens
     inline constexpr float knobNeedleStroke     = 1.5f;
     inline constexpr float curveStroke          = 2.5f;
     inline constexpr float playheadWidth        = 1.0f;
+
+    // --- Layout vista Full (docs/DESIGN.md §5) ---
+    inline constexpr int   fullContentTop       = 77;    // Inicio de la fila media de paneles
+    inline constexpr int   fullPanelRowHeight   = 368;   // Altura de la fila media (y = 77 .. 445)
+    inline constexpr int   fullLeftPanelWidth   = 193;   // CURVE & KNOBS
+    inline constexpr int   fullCenterPanelWidth = 534;   // GAIN RESPONSE
+    inline constexpr int   fullRightPanelWidth  = 153;   // CHANNELS & LEVEL
+
+    // --- Panel GAIN RESPONSE ---
+    inline constexpr int   graphHeaderHeight    = 20;
+    inline constexpr int   graphAxisLabelWidth  = 26;    // Ancho de la columna de etiquetas dB
+    inline constexpr int   graphAxisLabelHeight = 12;
+    inline constexpr int   graphAxisGap         = 6;     // Separacion entre ejes y etiquetas
+    inline constexpr int   graphTimeLabelWidth  = 24;
+    inline constexpr float graphPillWidth       = 44.0f; // Pastilla "1.2.3" sobre el playhead
+    inline constexpr float graphPillHeight      = 18.0f;
+
+    // --- Panel LEVEL ---
+    inline constexpr float meterMinDb           = -48.0f;  // Base de la escala de los medidores
+    inline constexpr int   meterHeaderHeight    = 20;
+    inline constexpr int   meterLabelHeight     = 16;      // Fila de etiquetas IN / OUT
+    inline constexpr int   meterBarWidth        = 14;
+    inline constexpr int   meterScaleWidth      = 34;      // Columna central de escala dB
 
     // --- Jerarquía Tipográfica (px) (docs/DESIGN.md §4) ---
     inline constexpr float brandSize            = 19.0f;  // Archivo 800/300, tracking +0.04em

@@ -10,7 +10,7 @@
 - [x] **T-07 Suavizado.** Rampas para cambios de curva, ganancia, bypass y wrap, con suavizado para minimizar discontinuidades audibles. **Aceptar:** mediciones y escucha en múltiples BPM/sample rates; no prometer cero clics sin pruebas.
 - [x] **T-08 Estado y automatización.** Guardado/restauración APVTS e IDs. **Aceptar:** reabrir proyecto reproduce parámetros; automatización no bloquea callback.
 - [x] **T-09 Wireframe e identidad.** Distribución, tokens (`Source/UI/DesignTokens.h`), `UmbralLookAndFeel` y estados aprobados (`DESIGN.md` + PDF de rediseño). **Aceptar:** `DESIGN.md` actualizado y `LookAndFeelTests` en verde.
-- [ ] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
+- [x] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
 - [ ] **T-11 Pruebas integradas.** Validar bloques variables, canales, transporte, offline y casos límite. **Aceptar:** informe reproducible de tests y fallos resueltos o explícitos.
 - [ ] **T-12 Validación DAW.** pluginval strictness 5 y pruebas manuales en al menos dos hosts disponibles. **Aceptar:** logs y matriz de compatibilidad reales.
 - [ ] **T-13 Rendimiento.** Medir CPU/memoria en equipo de referencia y comparar tamaños de bloque. **Aceptar:** métricas documentadas; sin calificativos de rendimiento sin evidencia.

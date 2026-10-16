@@ -43,7 +43,7 @@ TEST_CASE ("DesignTokens match official hex palette and geometry", "[ui][tokens]
         CHECK (umbral::tokens::windowFullWidth     == 960);
         CHECK (umbral::tokens::windowFullHeight    == 600);
         CHECK (umbral::tokens::windowCompactWidth  == 560);
-        CHECK (umbral::tokens::windowCompactHeight == 368);
+        CHECK (umbral::tokens::windowCompactHeight == 360);
 
         CHECK_THAT (umbral::tokens::radius,           WithinAbs (4.0f, 1.0e-6f));
         CHECK_THAT (umbral::tokens::borderWidth,      WithinAbs (1.0f, 1.0e-6f));

@@ -63,3 +63,12 @@
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.
+
+
+## T-10 - UI funcional (GAIN RESPONSE y LEVEL)
+- Eje vertical de GainResponseView mapeado a [-24, 0] dB con recorte visual; la lectura numerica del snapshot llega hasta -60 dB.
+- Curva efectiva G(phi) = (1 - M) + M * C_slope(frac(phi - S)) via DuckingEngine::computeGain y math::gainToDb: misma funcion que el audio.
+- Compact oficial = 560 x 360 px (token windowCompactHeight 368 -> 360; PRD y ARCHITECTURE actualizados). Nota: AGENTS.md aun menciona 560 x 368 y debe actualizarse a mano.
+- LevelMetersComponent: el snapshot expone un unico nivel IN y uno OUT, por lo que se dibuja una barra por canal (no L/R); escala [-48, 0] dB.
+- El panel LEVEL ocupa todo el panel derecho hasta que exista el selector CHANNELS.
+- Timer 60 Hz lee el snapshot lock-free; Path y textos se reconstruyen en refresh()/resized(), paint() no reserva memoria.

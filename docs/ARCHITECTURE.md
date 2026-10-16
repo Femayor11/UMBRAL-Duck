@@ -104,7 +104,7 @@ UMBRAL-Duck/
 | `channels` | `CHANNELS` | Choice | `Stereo`, `Mono` | `Stereo` |
 | `bypass` | `BYPASS` | Bool | `false`, `true` | `false` |
 
-*Nota: El estado de tamaño de ventana (`Window 960x600` vs `Compact 560x368`) se guarda en el `ValueTree` de propiedades de UI del `APVTS` para no contaminar la lista de automatización del DAW.*
+*Nota: El estado de tamaño de ventana (`Window 960x600` vs `Compact 560x360`) se guarda en el `ValueTree` de propiedades de UI del `APVTS` para no contaminar la lista de automatización del DAW.*
 
 ## 5. Reglas de Tiempo Real y Distribución
 - En `processBlock`: cero asignaciones en heap (`new`, `resize`), cero `std::mutex`, cero acceso a disco o llamadas a UI.

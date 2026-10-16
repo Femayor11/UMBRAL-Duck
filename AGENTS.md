@@ -20,7 +20,7 @@ Antes de escribir código, lee siempre:
 - Usar **exclusivamente** los tokens definidos en `docs/DESIGN.md` (`Source/Common/DesignTokens.h`):
   - `Umbra` (`#131311`), `Panel` (`#1A1A17`), `Raised` (`#22221E`), `Hairline` (`#333220`), `Muted` (`#8C8A7E`), `Bone` (`#ECE8DC`), `Signal` (`#C9F04B`).
 - Nunca escribir colores hexadecimales ni tamaños de fuente sueltos en los métodos `paint()`.
-- Respetar las dos dimensiones oficiales de ventana: **Full (`960 x 600`)** y **Compact (`560 x 368`)**.
+- Respetar las dos dimensiones oficiales de ventana: **Full (`960 x 600`)** y **Compact (`560 x 360`)**.
 - Cero sombras (`none`) y cero degradados en controles (`none`). Bordes de `1 px`, radio de `4 px`, trazo de curva de `2.5 px`, barrido de perilla de `270°`.
 
 ## Forma de trabajo
