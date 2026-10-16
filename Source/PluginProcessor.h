@@ -1,8 +1,9 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
+#include "DSP/DuckingEngine.h"
+#include <atomic>
 
-// T-01: esqueleto vacío. Sin DSP ni parámetros (T-02 en adelante).
 class UmbralDuckProcessor final : public juce::AudioProcessor
 {
 public:
@@ -29,9 +30,27 @@ public:
     const juce::String getProgramName (int) override { return {}; }
     void changeProgramName (int, const juce::String&) override {}
 
-    void getStateInformation (juce::MemoryBlock&) override {}
-    void setStateInformation (const void*, int) override {}
+    void getStateInformation (juce::MemoryBlock&) override;
+    void setStateInformation (const void*, int) override;
+
+    juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
+    const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }
 
 private:
+    juce::AudioProcessorValueTreeState apvts;
+
+    // Cache de punteros atomicos para lectura lock-free y RT-safe
+    std::atomic<float>* rateParam     = nullptr;
+    std::atomic<float>* syncParam     = nullptr;
+    std::atomic<float>* bpmParam      = nullptr;
+    std::atomic<float>* curveParam    = nullptr;
+    std::atomic<float>* mixParam      = nullptr;
+    std::atomic<float>* shiftParam    = nullptr;
+    std::atomic<float>* slopeParam    = nullptr;
+    std::atomic<float>* channelsParam = nullptr;
+    std::atomic<float>* bypassParam   = nullptr;
+
+    umbral::dsp::DuckingEngine duckingEngine;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (UmbralDuckProcessor)
 };

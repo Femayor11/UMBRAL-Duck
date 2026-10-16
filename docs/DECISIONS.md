@@ -25,7 +25,13 @@
 - **Responsabilidades:** `evaluateNodes(nodes, phi, slope)` acota `phi` a [0,1] (`phi = 1` devuelve el último nodo exacto); `evaluate(curve, phi, shift, slope)` aplica `frac(phi - shift)` antes (por tanto `phi = 1` se envuelve a 0).
 - **Seguridad:** `phi`/`shift` no finitos -> `0.0f`; `slope` no finito -> `0.5f`. Índice de curva fuera de rango se acota a 0..11.
 
+## 2026-10-15 — Ganancia y parámetros (T-04)
+- **Aislamiento DSP:** `DuckingEngine` (`Source/DSP/`) es 100% libre de cabeceras de JUCE; procesa punteros/spans estándar de C++ (`float* const* channels, int numChannels, int numSamples`). `PluginProcessor` extrae los punteros del buffer y los pasa a `DuckingEngine`.
+- **Contrato de 9 parámetros APVTS:** `rate`, `sync`, `bpm`, `curve`, `mix`, `shift`, `slope`, `channels`, `bypass` registrados en `ParameterLayout.cpp` con IDs en `ParameterIDs.h` (`ParameterID { id, 1 }`). Punteros atómicos raw cacheados en el procesador para lectura RT-safe lock-free.
+- **Fase temporal en T-04:** mientras no exista `PhaseClock` (T-05), `PluginProcessor::processBlock` evalúa en `phase = 0.0f` por defecto. Dado que la curva por defecto `03 Smooth` tiene `C(0.0f) == 1.0f`, `PassThroughTests` sigue pasando bit-identical.
+- **Canales:** modo `Stereo` escala canales L y R de forma independiente; modo `Mono` calcula el promedio lineal `0.5 * (L + R) * G` hacia ambos canales para evitar clipping con señales en fase.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.
-- Instalar toolchain de build en el equipo local (ver T-01 en `TASKS.md`).
+
