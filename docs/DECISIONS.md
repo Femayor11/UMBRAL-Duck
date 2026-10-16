@@ -44,6 +44,12 @@
 - **Continuidad:** `Locked` actualiza el acumulador libre, así que `Locked -> Free` no salta. Seek y loop se resuelven desde el ppq del host en cada bloque.
 - **Memoria:** `phaseBuffer` se preasigna (4096 en el constructor, `prepareToPlay` lo ajusta a `samplesPerBlock`). Si el host entrega un bloque mayor, `processBlock` lo procesa en tramos sin redimensionar; `sampleOffset` mantiene el ppq continuo entre tramos.
 
+## 2026-10-16 — Suavizado de ganancia (T-07)
+- **Módulo:** `GainSmoother` (`Source/DSP/GainSmoother.h/.cpp`), filtro IIR de un polo por muestra (`y[n] = y[n-1] + alpha * (x[n] - y[n-1])`), 100% libre de JUCE, `noexcept` y sin asignaciones dinámicas.
+- **Calibración temporal:** el coeficiente $\alpha = 1 - \exp(-\ln(100) / (f_s \cdot T_{\text{ms}} \cdot 10^{-3}))$ se calibra para alcanzar el $99\%$ del escalón en `1.5 ms` por defecto (dentro de la ventana contractual de `1.0 ms` a `2.0 ms`).
+- **Snap y arranque limpio:** cuando $|x[n] - y[n]| \le 10^{-6}$, el estado hace *snap* exacto al objetivo (preservando ganancia `1.0f` bit-idéntica en reposo/bypass). `resetToNextSample()` permite que la primera muestra tras `prepareToPlay` o `reset` fije el nivel inicial sin rampa artificial de arranque.
+- **Integración y métricas:** `DuckingEngine` aplica `GainSmoother` muestra a muestra sobre `computeGain` y en las rampas de `bypass` (preservando los canales originales cuando `bypass` está activo). Las pruebas en `Tests/GainSmootherTests.cpp` verifican cuantitativamente el tiempo de asentamiento (`1–2 ms`) y la cota de diferencia máxima entre muestras consecutivas ($\Delta G_{\max} \le \alpha$) en `11 Step`, wrap de `05 Reverse`, cambios de `mix`/`bypass` y paradas de transporte entre `44.1 kHz` y `192 kHz` y `40–240 BPM`.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.

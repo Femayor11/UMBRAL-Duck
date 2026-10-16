@@ -1,9 +1,11 @@
 #pragma once
 
+#include "DSP/GainSmoother.h"
+
 #include <span>
 #include <cstddef>
 
-// Motor de ganancia de ducking (DSP_SPEC.md §1). Funciones puras, noexcept, sin heap ni locks.
+// Motor de ganancia de ducking (DSP_SPEC.md §1, §5). Funciones puras/RT-safe, noexcept, sin heap ni locks.
 // 100% libre de dependencias de JUCE o UI (usa punteros/spans estándar de C++).
 namespace umbral::dsp
 {
@@ -28,7 +30,13 @@ namespace umbral::dsp
     public:
         DuckingEngine() noexcept = default;
 
-        // Calcula la ganancia efectiva instantanea:
+        // Configura el suavizador de ganancia para la tasa de muestreo dada.
+        void prepare (double sampleRate, float smoothingTimeMs = GainSmoother::kDefaultSmoothingMs) noexcept;
+
+        // Reinicia el estado del suavizador para que la primera muestra del siguiente bloque fije el nivel inicial.
+        void reset() noexcept;
+
+        // Calcula la ganancia efectiva instantanea (sin suavizado):
         // G(phi) = (1 - M) + M * C_slope(frac(phi - S))
         // Salida garantizada finita en [0, 1].
         [[nodiscard]] static float computeGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept;
@@ -37,12 +45,20 @@ namespace umbral::dsp
         void process (float* const* channels, int numChannels, int numSamples,
                       const DuckingParameters& params, float phase) noexcept;
 
-        // Procesa un bloque de canales con un span de fases por muestra (preparado para T-05).
+        // Procesa un bloque de canales con un span de fases por muestra y suavizado anti-clic (T-05, T-07).
         void process (float* const* channels, int numChannels, int numSamples,
                       const DuckingParameters& params, std::span<const float> phases) noexcept;
 
         // Sobrecarga de conveniencia para pares L/R directos.
         void process (float* left, float* right, int numSamples,
                       const DuckingParameters& params, float phase) noexcept;
+
+        [[nodiscard]] const GainSmoother& getGainSmoother() const noexcept { return gainSmoother; }
+        [[nodiscard]] GainSmoother& getGainSmoother() noexcept { return gainSmoother; }
+
+    private:
+        void processBypassRamp (float* const* channels, int numChannels, int numSamples) noexcept;
+
+        GainSmoother gainSmoother;
     };
 }

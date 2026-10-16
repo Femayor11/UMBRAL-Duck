@@ -24,9 +24,13 @@ void UmbralDuckProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     phaseBuffer.assign (static_cast<size_t> (juce::jmax (samplesPerBlock, 1)), 0.0f);
     transportClock.prepare (sampleRate);
+    duckingEngine.prepare (sampleRate);
 }
 
-void UmbralDuckProcessor::releaseResources() {}
+void UmbralDuckProcessor::releaseResources()
+{
+    duckingEngine.reset();
+}
 
 bool UmbralDuckProcessor::isBusesLayoutSupported (const BusesLayout& layouts) const
 {
