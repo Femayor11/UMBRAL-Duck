@@ -20,25 +20,23 @@ namespace
 UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
+      headerBar (p.getAPVTS(), [this]() { toggleViewMode(); }),
       controlStrip (p.getAPVTS()),
       gainResponseView (p.getUiSnapshot(), makeParameterSource (p)),
       levelMeters (p.getUiSnapshot()),
       channelsSelector (p.getAPVTS()),
-      viewModeButton ("COMPACT")
+      curveBankGrid (p.getAPVTS())
 {
     setLookAndFeel (&lookAndFeel);
 
     levelMeters.setChannelsSectionOffset (umbral::tokens::channelsSectionHeight);
 
-    viewModeButton.setClickingTogglesState (false);
-    viewModeButton.getProperties().set (umbral::ui::UmbralLookAndFeel::kOutlineActiveStyleProperty, true);
-    viewModeButton.onClick = [this]() { toggleViewMode(); };
-
+    addAndMakeVisible (headerBar);
     addAndMakeVisible (controlStrip);
     addAndMakeVisible (gainResponseView);
     addAndMakeVisible (levelMeters);
     addAndMakeVisible (channelsSelector);
-    addAndMakeVisible (viewModeButton);
+    addAndMakeVisible (curveBankGrid);
 
     setResizable (false, false);
     applyViewMode (processorRef.isCompactView(), false);
@@ -69,13 +67,12 @@ void UmbralDuckEditor::applyViewMode (bool compact, bool persistToProcessor)
     if (persistToProcessor)
         processorRef.setCompactView (compact);
 
+    headerBar.setCompactMode (compact);
     controlStrip.setCompactMode (compact);
     levelMeters.setVisible (! compact);
     channelsSelector.setVisible (! compact);
     gainResponseView.setBarPillVisible (! compact);
-
-    viewModeButton.setToggleState (compact, juce::dontSendNotification);
-    viewModeButton.setButtonText (compact ? "FULL" : "COMPACT");
+    curveBankGrid.setVisible (! compact);
 
     const int targetWidth  = compact ? t::windowCompactWidth  : t::windowFullWidth;
     const int targetHeight = compact ? t::windowCompactHeight : t::windowFullHeight;
@@ -126,9 +123,7 @@ void UmbralDuckEditor::resized()
 
     if (compactView)
     {
-        const int headerRight = getWidth() - t::windowPaddingCompact;
-        const int buttonY     = (t::compactHeaderDividerY - t::viewToggleHeight) / 2;
-        viewModeButton.setBounds (headerRight - t::viewToggleWidth, buttonY, t::viewToggleWidth, t::viewToggleHeight);
+        headerBar.setBounds (0, 0, getWidth(), t::compactHeaderDividerY);
 
         // Cuadricula Compact (DESIGN.md §5):
         // Panel izquierdo GAIN RESPONSE (350 x 279 en x = 16, y = 65)
@@ -144,12 +139,12 @@ void UmbralDuckEditor::resized()
                                 t::compactContentTop,
                                 t::compactRightPanelWidth,
                                 t::compactPanelRowHeight);
+
+        curveBankGrid.setBounds (0, 0, 0, 0);
     }
     else
     {
-        const int headerRight = getWidth() - t::windowPadding;
-        const int buttonY     = (t::fullHeaderDividerY - t::viewToggleHeight) / 2;
-        viewModeButton.setBounds (headerRight - t::viewToggleWidth, buttonY, t::viewToggleWidth, t::viewToggleHeight);
+        headerBar.setBounds (0, 0, getWidth(), t::fullHeaderDividerY);
 
         // Fila media Full (DESIGN.md §5): [20 | 193 | 20 | 534 | 20 | 153 | 20]
         const int centerX = t::windowPadding + t::fullLeftPanelWidth + t::panelGap;
@@ -159,5 +154,11 @@ void UmbralDuckEditor::resized()
         gainResponseView.setBounds (centerX, t::fullContentTop, t::fullCenterPanelWidth, t::fullPanelRowHeight);
         levelMeters.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::fullPanelRowHeight);
         channelsSelector.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::channelsSectionHeight);
+
+        // Fila inferior Full (DESIGN.md §5): CURVE BANK (920 x 114 en x = 20, y = 466)
+        curveBankGrid.setBounds (t::windowPadding,
+                                 t::fullBottomRowTop,
+                                 t::fullBottomRowWidth,
+                                 t::fullBottomRowHeight);
     }
 }

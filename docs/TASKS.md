@@ -1,5 +1,5 @@
 # TASKS — plan de MVP
-**Estado:** T-01 a T-12 completadas y verificadas con CTest. Una tarea por sesión/cambio. No saltar dependencias.
+**Estado:** T-01 a T-13 completadas y verificadas con CTest. Una tarea por sesión/cambio. No saltar dependencias.
 
 - [x] **T-01 Entorno reproducible.** Fijar JUCE 8.x exacto, compilador, CMake, dependencias/licencias, comandos de build/test, `DesignTokens.h` y README. **Aceptar:** proyecto VST3 vacío compila desde clon limpio en Windows; CI básico ejecuta build.
 - [x] **T-02 Pass-through.** Processor con buses mono/estéreo, sin DSP. **Aceptar:** audio in/out idéntico en condiciones nominales; prueba en host.
@@ -13,9 +13,10 @@
 - [x] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
 - [x] **T-11 Doble vista y persistencia de ventana.** Soporte de vistas fijas Full (`960 x 600 px`) y Compact (`560 x 360 px`), alternancia desde la cabecera, ocultación de `LevelMetersComponent` y de la pastilla `1.2.3` en Compact, y persistencia de `isCompactView` en el `ValueTree` de APVTS (`getStateInformation` / `setStateInformation`). **Aceptar:** `WindowViewPersistenceTests` en verde.
 - [x] **T-12 Panel de controles (`ControlStrip` y `ChannelsSelector`).** Desplegable `CURVE` (12 curvas), knob principal `MIX` (`80 px`, `270°`, readout `IBM Plex Mono`), knobs secundarios `SHIFT` y `SLOPE` (`44 px`, `270°` en dos columnas simétricas), selector segmentado `CHANNELS` (`Stereo`/`Mono`) sobre `LevelMetersComponent`, enlace bidireccional con `APVTS` sin leaks y adaptabilidad a vista Compact (`CURVE` y `MIX` en el panel derecho `160 x 279`, ocultando `SHIFT`, `SLOPE` y `CHANNELS`). **Aceptar:** `ControlStripTests` en verde.
-- [ ] **T-13 Validación DAW.** pluginval strictness 5 y pruebas manuales en al menos dos hosts disponibles. **Aceptar:** logs y matriz de compatibilidad reales.
-- [ ] **T-14 Rendimiento.** Medir CPU/memoria en equipo de referencia y comparar tamaños de bloque. **Aceptar:** métricas documentadas; sin calificativos de rendimiento sin evidencia.
-- [ ] **T-15 Auditoría de publicación.** Licencia JUCE, dependencias, assets, marca, empaquetado e instrucciones. **Aceptar:** checklist legal/técnico cerrado antes de distribuir.
+- [x] **T-13 Cabecera (`HeaderBar`) y banco de curvas (`CurveBankGrid`).** Logotipo `UMBRAL duck`, selector segmentado `RATE` (`1/8`..`1/1`), readout/ajuste `BPM` + botón `SYNC`, botón `BYPASS` y alternancia `Full/Compact` en cabecera con adaptabilidad a Compact (`48 px`, ocultando `BYPASS` y etiquetas secundarias); fila inferior `CurveBankGrid` (`920 x 114 px`) con 12 celdas interactivas, miniatura vectorial (`12 Custom` con trazo discontinuo), resaltado `Signal`, enlace bidireccional con `APVTS`/`ControlStrip` y ocultación en Compact. **Aceptar:** `HeaderAndCurveBankTests` en verde.
+- [ ] **T-14 Validación DAW.** pluginval strictness 5 y pruebas manuales en al menos dos hosts disponibles. **Aceptar:** logs y matriz de compatibilidad reales.
+- [ ] **T-15 Rendimiento.** Medir CPU/memoria en equipo de referencia y comparar tamaños de bloque. **Aceptar:** métricas documentadas; sin calificativos de rendimiento sin evidencia.
+- [ ] **T-16 Auditoría de publicación.** Licencia JUCE, dependencias, assets, marca, empaquetado e instrucciones. **Aceptar:** checklist legal/técnico cerrado antes de distribuir.
 
 ## Reglas de aceptación transversales
 No marcar tarea por mera generación de código. Guardar comandos y resultados, revisar diff, documentar decisiones, no ampliar alcance sin aprobar PRD. El editor de curvas, MIDI, sidechain externo y macOS quedan fuera de este backlog MVP.

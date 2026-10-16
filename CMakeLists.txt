@@ -43,7 +43,9 @@ target_sources(UmbralDuck PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/TransportClock.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/Parameters/ParameterLayout.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/ControlStrip.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/CurveBankGrid.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/GainResponseView.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/HeaderBar.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/LevelMetersComponent.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/UI/UmbralLookAndFeel.cpp")
 
@@ -81,7 +83,8 @@ add_executable(UmbralDuckTests
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/LookAndFeelTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainResponseViewTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/WindowViewPersistenceTests.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ControlStripTests.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ControlStripTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/HeaderAndCurveBankTests.cpp")
 target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
 target_link_libraries(UmbralDuckTests
     PRIVATE

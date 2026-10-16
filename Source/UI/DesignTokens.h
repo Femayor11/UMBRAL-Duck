@@ -51,6 +51,9 @@ namespace umbral::tokens
     inline constexpr int   fullLeftPanelWidth   = 193;   // CURVE & KNOBS
     inline constexpr int   fullCenterPanelWidth = 534;   // GAIN RESPONSE
     inline constexpr int   fullRightPanelWidth  = 153;   // CHANNELS & LEVEL
+    inline constexpr int   fullBottomRowTop     = 466;   // Inicio de la fila inferior CURVE BANK (y = 466 .. 580)
+    inline constexpr int   fullBottomRowWidth   = 920;   // Ancho total del CURVE BANK en Full
+    inline constexpr int   fullBottomRowHeight  = 114;   // Altura total del CURVE BANK en Full
 
     // --- Layout vista Compact (docs/DESIGN.md §5) ---
     inline constexpr int   compactHeaderDividerY  = 48;  // Linea divisoria horizontal Hairline en Compact
@@ -60,6 +63,32 @@ namespace umbral::tokens
     inline constexpr int   compactRightPanelWidth = 160; // CURVE & MIX en Compact
     inline constexpr int   viewToggleWidth        = 72;  // Ancho del boton de alternancia de vista en cabecera
     inline constexpr int   viewToggleHeight       = 28;  // Alto del boton de alternancia de vista en cabecera
+
+    // --- Cabecera (HeaderBar, docs/DESIGN.md §4, §5 y §6) ---
+    inline constexpr int   headerLogoIconSize         = 24;
+    inline constexpr int   headerLogoTextGap          = 10;
+    inline constexpr int   headerLogoWidth            = 168;
+    inline constexpr int   headerLogoWidthCompact     = 150;
+    inline constexpr int   headerRateLabelWidth       = 38;
+    inline constexpr int   headerRateButtonWidth      = 44;
+    inline constexpr int   headerRateButtonCompactW   = 38;
+    inline constexpr int   headerBpmWidth             = 68;
+    inline constexpr int   headerBpmCompactWidth      = 58;
+    inline constexpr int   headerBpmLabelHeight       = 12;
+    inline constexpr int   headerBpmValueHeight       = 24;
+    inline constexpr int   headerSyncButtonWidth      = 54;
+    inline constexpr int   headerBypassButtonWidth    = 84;
+    inline constexpr int   headerControlGap           = 8;
+
+    // --- Banco de Curvas (CurveBankGrid, docs/DESIGN.md §5 y §6) ---
+    inline constexpr int   curveBankHeaderHeight      = 24;  // Cabecera CURVE BANK + nota 12 Custom
+    inline constexpr int   curveBankCellGap           = 8;   // Separacion horizontal entre las 12 celdas
+    inline constexpr int   curveBankCellHeight        = 82;  // Altura de cada celda (y = 498 .. 580)
+    inline constexpr int   curveBankCellPadding       = 7;   // Padding interior de cada celda
+    inline constexpr int   curveBankPreviewHeight     = 36;  // Zona superior para la miniatura vectorial
+    inline constexpr int   curveBankNumberHeight      = 13;  // Fila para el numero de ranura 01..12
+    inline constexpr int   curveBankNameHeight        = 16;  // Fila para el nombre de la curva
+    inline constexpr float curveBankStrokeWidth       = 1.5f;
 
     // --- Panel GAIN RESPONSE ---
     inline constexpr int   graphHeaderHeight    = 20;
