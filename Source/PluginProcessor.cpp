@@ -18,6 +18,9 @@ UmbralDuckProcessor::UmbralDuckProcessor()
     slopeParam    = apvts.getRawParameterValue (umbral::params::rawIDs::slope);
     channelsParam = apvts.getRawParameterValue (umbral::params::rawIDs::channels);
     bypassParam   = apvts.getRawParameterValue (umbral::params::rawIDs::bypass);
+
+    if (! apvts.state.hasProperty (kIsCompactViewProperty))
+        apvts.state.setProperty (kIsCompactViewProperty, false, nullptr);
 }
 
 void UmbralDuckProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
@@ -146,9 +149,22 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     uiSnapshot.publishFromLinearGain (lastResult.endPhase, currentGainLinear, lastResult.tick, inLevelDb, outLevelDb);
 }
 
+bool UmbralDuckProcessor::isCompactView() const noexcept
+{
+    return static_cast<bool> (apvts.state.getProperty (kIsCompactViewProperty, false));
+}
+
+void UmbralDuckProcessor::setCompactView (bool compact)
+{
+    apvts.state.setProperty (kIsCompactViewProperty, compact, nullptr);
+}
+
 void UmbralDuckProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
+    if (! state.hasProperty (kIsCompactViewProperty))
+        state.setProperty (kIsCompactViewProperty, false, nullptr);
+
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
 }
@@ -157,7 +173,15 @@ void UmbralDuckProcessor::setStateInformation (const void* data, int sizeInBytes
 {
     std::unique_ptr<juce::XmlElement> xmlState (getXmlFromBinary (data, sizeInBytes));
     if (xmlState != nullptr && xmlState->hasTagName (apvts.state.getType()))
-        apvts.replaceState (juce::ValueTree::fromXml (*xmlState));
+    {
+        auto restored = juce::ValueTree::fromXml (*xmlState);
+        const bool compact = static_cast<bool> (restored.getProperty (kIsCompactViewProperty, false));
+        restored.setProperty (kIsCompactViewProperty, compact, nullptr);
+        apvts.replaceState (restored);
+
+        if (auto* editor = dynamic_cast<UmbralDuckEditor*> (getActiveEditor()))
+            editor->setCompactView (compact);
+    }
 }
 
 juce::AudioProcessorEditor* UmbralDuckProcessor::createEditor()

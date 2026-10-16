@@ -34,8 +34,13 @@ public:
     const juce::String getProgramName (int) override { return {}; }
     void changeProgramName (int, const juce::String&) override {}
 
+    static inline const juce::Identifier kIsCompactViewProperty { "isCompactView" };
+
     void getStateInformation (juce::MemoryBlock&) override;
     void setStateInformation (const void*, int) override;
+
+    [[nodiscard]] bool isCompactView() const noexcept;
+    void setCompactView (bool compact);
 
     juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }

@@ -45,11 +45,21 @@ namespace umbral::tokens
     inline constexpr float playheadWidth        = 1.0f;
 
     // --- Layout vista Full (docs/DESIGN.md §5) ---
+    inline constexpr int   fullHeaderDividerY   = 76;    // Linea divisoria horizontal Hairline en Full
     inline constexpr int   fullContentTop       = 77;    // Inicio de la fila media de paneles
     inline constexpr int   fullPanelRowHeight   = 368;   // Altura de la fila media (y = 77 .. 445)
     inline constexpr int   fullLeftPanelWidth   = 193;   // CURVE & KNOBS
     inline constexpr int   fullCenterPanelWidth = 534;   // GAIN RESPONSE
     inline constexpr int   fullRightPanelWidth  = 153;   // CHANNELS & LEVEL
+
+    // --- Layout vista Compact (docs/DESIGN.md §5) ---
+    inline constexpr int   compactHeaderDividerY  = 48;  // Linea divisoria horizontal Hairline en Compact
+    inline constexpr int   compactContentTop      = 65;  // Inicio de paneles en Compact
+    inline constexpr int   compactPanelRowHeight  = 279; // Altura de paneles en Compact (y = 65 .. 344)
+    inline constexpr int   compactLeftPanelWidth  = 350; // GAIN RESPONSE en Compact
+    inline constexpr int   compactRightPanelWidth = 160; // CURVE & MIX en Compact
+    inline constexpr int   viewToggleWidth        = 72;  // Ancho del boton de alternancia de vista en cabecera
+    inline constexpr int   viewToggleHeight       = 28;  // Alto del boton de alternancia de vista en cabecera
 
     // --- Panel GAIN RESPONSE ---
     inline constexpr int   graphHeaderHeight    = 20;

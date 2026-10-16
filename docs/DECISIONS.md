@@ -72,3 +72,8 @@
 - LevelMetersComponent: el snapshot expone un unico nivel IN y uno OUT, por lo que se dibuja una barra por canal (no L/R); escala [-48, 0] dB.
 - El panel LEVEL ocupa todo el panel derecho hasta que exista el selector CHANNELS.
 - Timer 60 Hz lee el snapshot lock-free; Path y textos se reconstruyen en refresh()/resized(), paint() no reserva memoria.
+
+## 2026-10-16 — Doble vista Full/Compact y persistencia de ventana (T-11)
+- **Dos dimensiones fijas y constrainer:** `UmbralDuckEditor` bloquea el redimensionamiento libre (`setResizable(false, false)` y `setResizeLimits(w, h, w, h)`) alternando únicamente entre **Full (`960 x 600 px`)** y **Compact (`560 x 360 px`)**.
+- **Comportamiento en Compact:** oculta `LevelMetersComponent` (`setVisible(false)`), oculta la pastilla `1.2.3` del playhead en `GainResponseView` (`setBarPillVisible(false)`) y reposiciona `GainResponseView` en la cuadrícula Compact (`x = 16`, `y = 65`, `w = 350`, `h = 279` según `docs/DESIGN.md §5`).
+- **Persistencia en `APVTS`:** el estado de vista se almacena en la propiedad `isCompactView` (`UmbralDuckProcessor::kIsCompactViewProperty`) del `ValueTree` de `apvts.state` para no contaminar la lista de parámetros automatizables del DAW. `UmbralDuckEditor` escucha `apvts.state` mediante `juce::ValueTree::Listener` (`valueTreePropertyChanged` y `valueTreeRedirected`), sincronizando inmediatamente el tamaño y la visibilidad tanto al reabrir el editor como cuando el host invoca `setStateInformation` con el editor abierto.

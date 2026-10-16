@@ -37,6 +37,7 @@ namespace umbral::ui
 
         // La vista Compact oculta la pastilla "1.2.3".
         void setBarPillVisible (bool shouldBeVisible);
+        [[nodiscard]] bool isBarPillVisible() const noexcept { return barPillVisible; }
 
         // Cuerpo del timer: lee el snapshot y los parametros, y solicita repaint si algo cambio.
         void refresh();

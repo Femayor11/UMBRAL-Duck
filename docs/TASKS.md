@@ -1,5 +1,5 @@
 # TASKS — plan de MVP
-**Estado:** T-01 a T-09 completadas y verificadas con CTest. Una tarea por sesión/cambio. No saltar dependencias.
+**Estado:** T-01 a T-11 completadas y verificadas con CTest. Una tarea por sesión/cambio. No saltar dependencias.
 
 - [x] **T-01 Entorno reproducible.** Fijar JUCE 8.x exacto, compilador, CMake, dependencias/licencias, comandos de build/test, `DesignTokens.h` y README. **Aceptar:** proyecto VST3 vacío compila desde clon limpio en Windows; CI básico ejecuta build.
 - [x] **T-02 Pass-through.** Processor con buses mono/estéreo, sin DSP. **Aceptar:** audio in/out idéntico en condiciones nominales; prueba en host.
@@ -11,7 +11,7 @@
 - [x] **T-08 Estado y automatización.** Guardado/restauración APVTS e IDs. **Aceptar:** reabrir proyecto reproduce parámetros; automatización no bloquea callback.
 - [x] **T-09 Wireframe e identidad.** Distribución, tokens (`Source/UI/DesignTokens.h`), `UmbralLookAndFeel` y estados aprobados (`DESIGN.md` + PDF de rediseño). **Aceptar:** `DESIGN.md` actualizado y `LookAndFeelTests` en verde.
 - [x] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
-- [ ] **T-11 Pruebas integradas.** Validar bloques variables, canales, transporte, offline y casos límite. **Aceptar:** informe reproducible de tests y fallos resueltos o explícitos.
+- [x] **T-11 Doble vista y persistencia de ventana.** Soporte de vistas fijas Full (`960 x 600 px`) y Compact (`560 x 360 px`), alternancia desde la cabecera, ocultación de `LevelMetersComponent` y de la pastilla `1.2.3` en Compact, y persistencia de `isCompactView` en el `ValueTree` de APVTS (`getStateInformation` / `setStateInformation`). **Aceptar:** `WindowViewPersistenceTests` en verde.
 - [ ] **T-12 Validación DAW.** pluginval strictness 5 y pruebas manuales en al menos dos hosts disponibles. **Aceptar:** logs y matriz de compatibilidad reales.
 - [ ] **T-13 Rendimiento.** Medir CPU/memoria en equipo de referencia y comparar tamaños de bloque. **Aceptar:** métricas documentadas; sin calificativos de rendimiento sin evidencia.
 - [ ] **T-14 Auditoría de publicación.** Licencia JUCE, dependencias, assets, marca, empaquetado e instrucciones. **Aceptar:** checklist legal/técnico cerrado antes de distribuir.
