@@ -55,6 +55,11 @@
 - **Balística de medidores Peak (`IN` / `OUT`):** `LevelMeterSource` (`Source/DSP/LevelMeterSource.h`), 100% libre de JUCE y `noexcept`, mide el pico lineal por bloque antes y después del procesamiento de ducking con ataque instantáneo y decaimiento exponencial suave ($\tau = 300\text{ ms}$, $\approx 28.9\text{ dB/s}$), con *snap* al piso de $-60\text{ dB}$ ($10^{-3}$).
 - **Persistencia APVTS:** verificado mediante pruebas de roundtrip XML (`getStateInformation` / `setStateInformation`) que los 9 parámetros del contrato y las propiedades de UI en el `ValueTree` (como `compactMode`) se restauran produciendo audio y snapshots idénticos.
 
+## 2026-10-16 — Tokens de diseño y LookAndFeel base (T-09)
+- **Tokens canónicos (`Source/UI/DesignTokens.h`):** paleta oficial confirmada según `docs/DESIGN.md` (`Umbra #131311`, `Panel #1A1A17`, `Raised #22221E`, `Hairline #33322C`, `Muted #8C8A7E`, `Bone #ECE8DC`, `Signal #C9F04B`), opacidades derivadas y constantes geométricas/tipográficas. `Source/Common/DesignTokens.h` redirige a `Source/UI/DesignTokens.h` para mantener una única fuente de verdad y compatibilidad con includes previos.
+- **`UmbralLookAndFeel` (`Source/UI/UmbralLookAndFeel.h/.cpp`):** hereda de `juce::LookAndFeel_V4`, registra el esquema de color oficial y sobrescribe el dibujado plano sin sombras ni degradados para `drawRotarySlider` (cuerpo circular `Raised`, borde `1 px Hairline` y aguja indicadora radial `Bone` de `1.5 px` en barrido de `270°`), `drawButtonBackground`/`drawButtonText` (esquinas redondeadas `4 px`, estado activo relleno `Signal`/`Umbra` y variante `kOutlineActiveStyleProperty` con fondo `Raised` + borde/texto `Signal` para controles como `SYNC`) y `drawComboBox`.
+- **Tipografía fallback JUCE 8:** construida con `juce::FontOptions` (libre de constructores deprecados de `juce::Font` bajo `/W4 /WX`) empleando las familias sans-serif y monoespaciadas del sistema con la jerarquía exacta de alturas de `docs/DESIGN.md` mientras se integran los binarios `.ttf` de `Archivo` e `IBM Plex Mono`.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.

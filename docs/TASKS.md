@@ -1,5 +1,5 @@
 # TASKS — plan de MVP
-**Estado:** solo T-09 (aprobación de diseño, solo documentación, sin código de UI) está marcada como completada. Una tarea por sesión/cambio. No saltar dependencias.
+**Estado:** T-01 a T-09 completadas y verificadas con CTest. Una tarea por sesión/cambio. No saltar dependencias.
 
 - [x] **T-01 Entorno reproducible.** Fijar JUCE 8.x exacto, compilador, CMake, dependencias/licencias, comandos de build/test, `DesignTokens.h` y README. **Aceptar:** proyecto VST3 vacío compila desde clon limpio en Windows; CI básico ejecuta build.
 - [x] **T-02 Pass-through.** Processor con buses mono/estéreo, sin DSP. **Aceptar:** audio in/out idéntico en condiciones nominales; prueba en host.
@@ -9,7 +9,7 @@
 - [x] **T-06 Transporte.** Host playing/stopped/unknown, seek, loop y reloj interno explícito. **Aceptar:** pruebas deterministas y salida segura sin datos.
 - [x] **T-07 Suavizado.** Rampas para cambios de curva, ganancia, bypass y wrap, con suavizado para minimizar discontinuidades audibles. **Aceptar:** mediciones y escucha en múltiples BPM/sample rates; no prometer cero clics sin pruebas.
 - [x] **T-08 Estado y automatización.** Guardado/restauración APVTS e IDs. **Aceptar:** reabrir proyecto reproduce parámetros; automatización no bloquea callback.
-- [x] **T-09 Wireframe e identidad.** Distribución, tokens y estados aprobados (`DESIGN.md` + PDF de rediseño). **Aceptar:** `DESIGN.md` actualizado.
+- [x] **T-09 Wireframe e identidad.** Distribución, tokens (`Source/UI/DesignTokens.h`), `UmbralLookAndFeel` y estados aprobados (`DESIGN.md` + PDF de rediseño). **Aceptar:** `DESIGN.md` actualizado y `LookAndFeelTests` en verde.
 - [ ] **T-10 UI funcional.** Controles, curva efectiva y fase atómica. **Aceptar:** vista coincide con DSP, sin acoplamiento UI/audio y funciona a DPI alto.
 - [ ] **T-11 Pruebas integradas.** Validar bloques variables, canales, transporte, offline y casos límite. **Aceptar:** informe reproducible de tests y fallos resueltos o explícitos.
 - [ ] **T-12 Validación DAW.** pluginval strictness 5 y pruebas manuales en al menos dos hosts disponibles. **Aceptar:** logs y matriz de compatibilidad reales.
