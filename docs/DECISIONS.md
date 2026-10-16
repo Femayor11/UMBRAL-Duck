@@ -31,6 +31,11 @@
 - **Fase temporal en T-04:** mientras no exista `PhaseClock` (T-05), `PluginProcessor::processBlock` evalúa en `phase = 0.0f` por defecto. Dado que la curva por defecto `03 Smooth` tiene `C(0.0f) == 1.0f`, `PassThroughTests` sigue pasando bit-identical.
 - **Canales:** modo `Stereo` escala canales L y R de forma independiente; modo `Mono` calcula el promedio lineal `0.5 * (L + R) * G` hacia ambos canales para evitar clipping con señales en fase.
 
+## 2026-10-16 — Fase matemática (T-05)
+- **Aislamiento y precisión:** `PhaseClock` (`Source/DSP/PhaseClock.h/.cpp`) es un módulo matemático puro (`noexcept`, sin heap, 100% libre de JUCE) que opera internamente en `double` para evitar deriva con PPQ grandes o bloques largos y entrega fases normalizadas `float` en `[0.0f, 1.0f)`.
+- **Subdivisiones y anclaje (`anchor`):** `1/8` (`0.5`), `1/4` (`1.0`), `1/2` (`2.0`) se anclan a la cuadrícula `PPQ = 0.0`. `1/1` (`OneBar`, `L = N * 4.0 / D` con fallback a `4/4` si `N <= 0` o `D <= 0`) se ancla a `barStartPpq` cuando `hasBarStartPpq` es verdadero y finito, o a `0.0` en su ausencia.
+- **Lectura musical (`BarBeatTick`):** calcula `bar.beat.subdivision` (1-indexado, pulso de longitud `4.0 / D` negras y subdivisión en 4 partes por pulso) soportando compases `4/4`, `3/4`, `6/8` y PPQ negativos.
+
 ## Pendientes
 - Auditoría de licencia JUCE y del código propio antes de publicar (T-14).
 - Pruebas comparativas y DAW de referencia.
