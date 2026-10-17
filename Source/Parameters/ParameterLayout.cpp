@@ -28,25 +28,29 @@ namespace umbral::params
             juce::NormalisableRange<float> (40.0f, 240.0f, 0.1f),
             120.0f));
 
-        // 4. CURVE BANK: Choice 01 Classic .. 12 Custom (default 03 Smooth)
+        // 4. CURVE BANK: Choice 01 Click Duck .. 16 Custom (default 04 Classic)
         layout.add (std::make_unique<juce::AudioParameterChoice> (
             ids::curve,
             names::curve,
             juce::StringArray {
-                "01 Classic",
-                "02 Sharp",
-                "03 Smooth",
-                "04 Tight",
-                "05 Reverse",
-                "06 Rhythmic",
-                "07 Deep",
-                "08 Light",
-                "09 Pump",
-                "10 Flow",
-                "11 Step",
-                "12 Custom"
+                "01 Click Duck",
+                "02 Tight",
+                "03 Punch",
+                "04 Classic",
+                "05 Deep",
+                "06 Linear",
+                "07 Logarithmic",
+                "08 Slow Sweep",
+                "09 Reverse Pump",
+                "10 Side-Drop",
+                "11 Trance Gate",
+                "12 Stutter",
+                "13 Offbeat Dip",
+                "14 Sine Smooth",
+                "15 Ramp Down",
+                "16 Custom"
             },
-            2));
+            curves::defaultIndex));
 
         // 5. MIX: Float 0.0%..100.0%, paso 0.1% (default 70.0%)
         layout.add (std::make_unique<juce::AudioParameterFloat> (

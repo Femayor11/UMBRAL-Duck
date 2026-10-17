@@ -108,13 +108,8 @@ namespace umbral::ui
         }
         else
         {
-            const char* fallbackNames[] = {
-                "01 Classic", "02 Sharp", "03 Smooth", "04 Tight",
-                "05 Reverse", "06 Rhythmic", "07 Deep", "08 Light",
-                "09 Pump", "10 Flow", "11 Step", "12 Custom"
-            };
-            for (int i = 0; i < 12; ++i)
-                curveCombo.addItem (fallbackNames[i], i + 1);
+            for (int i = 0; i < params::curves::count; ++i)
+                curveCombo.addItem (params::curves::choices[i], i + 1);
         }
 
         configureRotaryKnob (mixSlider);

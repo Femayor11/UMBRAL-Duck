@@ -80,13 +80,13 @@ namespace umbral::tokens
     inline constexpr int   headerBypassButtonWidth    = 84;
     inline constexpr int   headerControlGap           = 8;
 
-    // --- Banco de Curvas (CurveBankGrid, docs/DESIGN.md §5 y §6) ---
-    inline constexpr int   curveBankHeaderHeight      = 24;  // Cabecera CURVE BANK + nota 12 Custom
-    inline constexpr int   curveBankCellGap           = 8;   // Separacion horizontal entre las 12 celdas
+    // --- Banco de Curvas (CurveBankGrid, 16 celdas en 920 px) ---
+    inline constexpr int   curveBankHeaderHeight      = 24;  // Cabecera CURVE BANK + nota 16 Custom
+    inline constexpr int   curveBankCellGap           = 6;   // Separacion horizontal entre las 16 celdas
     inline constexpr int   curveBankCellHeight        = 82;  // Altura de cada celda (y = 498 .. 580)
-    inline constexpr int   curveBankCellPadding       = 7;   // Padding interior de cada celda
+    inline constexpr int   curveBankCellPadding       = 5;   // Padding interior de cada celda
     inline constexpr int   curveBankPreviewHeight     = 36;  // Zona superior para la miniatura vectorial
-    inline constexpr int   curveBankNumberHeight      = 13;  // Fila para el numero de ranura 01..12
+    inline constexpr int   curveBankNumberHeight      = 13;  // Fila para el numero de ranura 01..16
     inline constexpr int   curveBankNameHeight        = 16;  // Fila para el nombre de la curva
     inline constexpr float curveBankStrokeWidth       = 1.5f;
 

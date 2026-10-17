@@ -42,4 +42,30 @@ namespace umbral::params
         inline constexpr auto channels = "CHANNELS";
         inline constexpr auto bypass   = "BYPASS";
     }
+
+    namespace curves
+    {
+        inline constexpr int count        = 16;
+        inline constexpr int defaultIndex = 3;  // 04 Classic
+        inline constexpr int customIndex  = 15; // 16 Custom
+
+        inline constexpr const char* choices[count] = {
+            "01 Click Duck",
+            "02 Tight",
+            "03 Punch",
+            "04 Classic",
+            "05 Deep",
+            "06 Linear",
+            "07 Logarithmic",
+            "08 Slow Sweep",
+            "09 Reverse Pump",
+            "10 Side-Drop",
+            "11 Trance Gate",
+            "12 Stutter",
+            "13 Offbeat Dip",
+            "14 Sine Smooth",
+            "15 Ramp Down",
+            "16 Custom"
+        };
+    }
 }

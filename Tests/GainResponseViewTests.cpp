@@ -168,8 +168,8 @@ TEST_CASE ("GainResponse degenerate areas produce empty paths", "[ui][gainrespon
 TEST_CASE ("GainResponseGeometry: no vertical drop at phi 1.0 on curves ending at unity", "[ui][gainresponse]")
 {
     // Curvas que terminan en C(1.0) = 1.0 (0 dB) pero inician en C(0.0) < 1.0:
-    // 01 Classic (0), 02 Sharp (1), 04 Tight (3), 06 Rhythmic (5), 07 Deep (6), 08 Light (7), 09 Pump (8), 11 Step (10)
-    const int unityEndCurves[] = { 0, 1, 3, 5, 6, 7, 8, 10 };
+    // Grupo A (0..7) y 16 Custom (15)
+    const int unityEndCurves[] = { 0, 1, 2, 3, 4, 5, 6, 7, 15 };
     const float topY           = geo::dbToY (kArea, 0.0f);
 
     for (const int curveIndex : unityEndCurves)

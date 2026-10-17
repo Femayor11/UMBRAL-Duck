@@ -10,14 +10,14 @@
 
 namespace umbral::ui
 {
-    // Banco inferior de 12 celdas interactivas de curvas (docs/DESIGN.md §4, §5 y §6).
+    // Banco inferior de 16 celdas interactivas de curvas (docs/DESIGN.md §4, §5 y §6).
     // En vista Full ocupa 920 x 114 px (x = 20, y = 466); en vista Compact permanece oculto.
     // Enlazado bidireccionalmente al parametro "curve" de APVTS.
     class CurveBankGrid final : public juce::Component
     {
     public:
         static constexpr int kNumCells        = dsp::numCurves;
-        static constexpr int kPreviewSamples  = 48;
+        static constexpr int kPreviewSamples  = 96;
 
         struct CellLayout
         {
@@ -57,7 +57,7 @@ namespace umbral::ui
         void updateCurveFromParameter (float rawIndexValue);
         void rebuildCellPaths();
 
-        int selectedCurveIndex = 2; // Default: 03 Smooth
+        int selectedCurveIndex = dsp::defaultCurveIndex; // Default: 04 Classic
         int hoveredCellIndex   = -1;
 
         juce::Font sectionHeaderFont;

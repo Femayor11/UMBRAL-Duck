@@ -73,8 +73,10 @@ namespace umbral::ui
         geometry::CurveParams p;
 
         const float curveRaw = loadOr (parameters.curve, static_cast<float> (p.curveIndex));
-        p.curveIndex = std::clamp (static_cast<int> (std::lround (math::finiteOr (curveRaw, 2.0f))),
-                                   0, dsp::numCurves - 1);
+        p.curveIndex = std::clamp (
+            static_cast<int> (std::lround (math::finiteOr (curveRaw, static_cast<float> (dsp::defaultCurveIndex)))),
+            0,
+            dsp::numCurves - 1);
 
         p.mix   = math::clamp01 (math::finiteOr (loadOr (parameters.mix, defaultMixPercent), defaultMixPercent)
                                  * percentToUnit);

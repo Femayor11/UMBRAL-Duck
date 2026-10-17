@@ -27,15 +27,15 @@ namespace umbral::ui::geometry
     inline constexpr std::array<float, 5> gridDb    { 0.0f, -6.0f, -12.0f, -18.0f, -24.0f };
     inline constexpr std::array<float, 5> gridPhase { 0.0f, 0.25f, 0.5f, 0.75f, 1.0f };
 
-    // 129 puntos = 128 segmentos entre phi = 0 y phi = 1.
-    inline constexpr int curvePointCount = 129;
+    // 257 puntos = 256 segmentos entre phi = 0 y phi = 1 para maxima nitidez en transitorios y escalones.
+    inline constexpr int curvePointCount = 257;
 
     struct CurveParams
     {
-        int curveIndex = 2;      // 03 Smooth
-        float mix      = 0.70f;  // [0, 1]
-        float shift    = 0.0f;   // [0, 1]
-        float slope    = 0.5f;   // [0, 1]
+        int curveIndex = dsp::defaultCurveIndex; // 04 Classic
+        float mix      = 0.70f;                  // [0, 1]
+        float shift    = 0.0f;                   // [0, 1]
+        float slope    = 0.5f;                   // [0, 1]
 
         bool operator== (const CurveParams&) const = default;
     };

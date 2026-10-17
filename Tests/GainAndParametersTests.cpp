@@ -72,12 +72,14 @@ TEST_CASE ("APVTS layout defines all 9 contract parameters with exact defaults",
         auto* param = dynamic_cast<juce::AudioParameterChoice*> (
             apvts.getParameter (umbral::params::rawIDs::curve));
         REQUIRE (param != nullptr);
-        REQUIRE (param->choices.size() == 12);
-        REQUIRE (param->choices[0] == "01 Classic");
-        REQUIRE (param->choices[1] == "02 Sharp");
-        REQUIRE (param->choices[2] == "03 Smooth");
-        REQUIRE (param->choices[11] == "12 Custom");
-        REQUIRE (param->getIndex() == 2); // Default 03 Smooth
+        REQUIRE (param->choices.size() == 16);
+        REQUIRE (param->choices[0]  == "01 Click Duck");
+        REQUIRE (param->choices[1]  == "02 Tight");
+        REQUIRE (param->choices[2]  == "03 Punch");
+        REQUIRE (param->choices[3]  == "04 Classic");
+        REQUIRE (param->choices[10] == "11 Trance Gate");
+        REQUIRE (param->choices[15] == "16 Custom");
+        REQUIRE (param->getIndex() == 3); // Default 04 Classic
     }
 
     SECTION ("MIX parameter properties")
@@ -136,7 +138,7 @@ TEST_CASE ("DuckingEngine computeGain obeys mathematical gain equation", "[dsp][
 
     SECTION ("Identity at mix zero across all curves and phases")
     {
-        for (int curve = 0; curve < 12; ++curve)
+        for (int curve = 0; curve < numCurves; ++curve)
         {
             for (float phi : { 0.0f, 0.1f, 0.25f, 0.5f, 0.75f, 0.99f })
             {
@@ -148,7 +150,7 @@ TEST_CASE ("DuckingEngine computeGain obeys mathematical gain equation", "[dsp][
 
     SECTION ("Full ducking at mix 100 percent equals curve value")
     {
-        for (int curve = 0; curve < 12; ++curve)
+        for (int curve = 0; curve < numCurves; ++curve)
         {
             for (float phi : { 0.0f, 0.2f, 0.5f, 0.8f })
             {
@@ -247,7 +249,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
         initSignals(); // left = 0.8, right = -0.4 -> average = 0.5 * (0.8 - 0.4) = 0.2
         DuckingParameters params;
         params.channels   = ChannelsMode::Mono;
-        params.curveIndex = 2; // 03 Smooth: at phi = 0, C(0) = 1.0 -> gain = 1.0 with any mix
+        params.curveIndex = 12; // 13 Offbeat Dip: at phi = 0, C(0) = 1.0 -> gain = 1.0 with any mix
         params.mix        = 0.7f;
 
         engine.process (left.data(), right.data(), numSamples, params, 0.0f);
@@ -269,8 +271,8 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
 
         DuckingParameters params;
         params.channels   = ChannelsMode::Mono;
-        params.curveIndex = 2;
-        params.mix        = 0.7f; // At phi = 0, C(0) = 1 -> G = 1
+        params.curveIndex = 12; // 13 Offbeat Dip: C(0) = 1.0
+        params.mix        = 0.7f;
 
         engine.process (left.data(), right.data(), numSamples, params, 0.0f);
 
@@ -291,7 +293,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
 
         DuckingParameters params;
         params.channels   = ChannelsMode::Mono;
-        params.curveIndex = 2;
+        params.curveIndex = 12;
         params.mix        = 0.7f;
 
         engine.process (left.data(), right.data(), numSamples, params, 0.0f);
@@ -309,7 +311,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
         float* channels[1] = { monoChannel.data() };
 
         DuckingParameters params;
-        params.curveIndex = 0; // 01 Classic has value 0.0 at phi = 0
+        params.curveIndex = 3; // 04 Classic has value 0.0 at phi = 0
         params.mix        = 0.60f; // Gain = (1 - 0.60) + 0.60 * 0 = 0.40
 
         engine.process (channels, 1, numSamples, params, 0.0f);
@@ -331,7 +333,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
         float* channels[2] = { chL.data(), chR.data() };
 
         DuckingParameters params;
-        params.curveIndex = 0;
+        params.curveIndex = 3;
         params.mix        = 1.0f;
         params.channels   = ChannelsMode::Stereo;
 
@@ -339,7 +341,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
 
         for (int i = 0; i < numSamples; ++i)
         {
-            const float expectedG = DuckingEngine::computeGain (0, phases[static_cast<size_t> (i)], 0.0f, 0.5f, 1.0f);
+            const float expectedG = DuckingEngine::computeGain (3, phases[static_cast<size_t> (i)], 0.0f, 0.5f, 1.0f);
             REQUIRE_THAT (chL[static_cast<size_t> (i)], WithinAbs (expectedG, 1e-5f));
             REQUIRE_THAT (chR[static_cast<size_t> (i)], WithinAbs (expectedG, 1e-5f));
         }
@@ -359,7 +361,7 @@ TEST_CASE ("Processor integration updates processing based on APVTS parameters",
         auto* curveParam  = apvts.getParameter (umbral::params::rawIDs::curve);
         auto* mixParam    = apvts.getParameter (umbral::params::rawIDs::mix);
 
-        curveParam->setValueNotifyingHost (0.0f); // 01 Classic (gain 0 at phi 0)
+        curveParam->setValueNotifyingHost (0.0f); // 01 Click Duck (gain 0 at phi 0)
         mixParam->setValueNotifyingHost (1.0f);   // 100% mix
         bypassParam->setValueNotifyingHost (1.0f); // Bypass ON
 
@@ -383,7 +385,10 @@ TEST_CASE ("Processor integration updates processing based on APVTS parameters",
     SECTION ("Setting channels to Mono downmixes in processBlock")
     {
         auto* channelsParam = apvts.getParameter (umbral::params::rawIDs::channels);
+        auto* curveParam    = apvts.getParameter (umbral::params::rawIDs::curve);
         channelsParam->setValueNotifyingHost (1.0f); // Choice 1: Mono
+        // 13 Offbeat Dip (indice 12): C(phi) = 1.0 en [0, 0.25] -> gain = 1.0
+        curveParam->setValueNotifyingHost (curveParam->convertTo0to1 (12.0f));
 
         juce::AudioBuffer<float> buffer (2, 64);
         for (int i = 0; i < 64; ++i)
@@ -396,7 +401,6 @@ TEST_CASE ("Processor integration updates processing based on APVTS parameters",
         processor.processBlock (buffer, midi);
 
         // Average = 0.5 * (0.8 + 0.2) = 0.5
-        // At default curve (03 Smooth) and phi = 0, C(0) = 1.0 -> gain = 1.0
         for (int i = 0; i < 64; ++i)
         {
             REQUIRE_THAT (buffer.getSample (0, i), WithinAbs (0.5f, 1e-4f));

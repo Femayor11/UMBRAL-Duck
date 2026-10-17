@@ -62,10 +62,10 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
         CHECK (header.areSecondaryLabelsVisible());
     }
 
-    SECTION ("CurveBankGrid defaults to 03 Smooth with 12 valid cells and slot 12 dashed")
+    SECTION ("CurveBankGrid defaults to 04 Classic with 16 valid cells and slot 16 dashed")
     {
         CHECK (curveBank.isVisible());
-        CHECK (curveBank.getSelectedCurveIndex() == 2);
+        CHECK (curveBank.getSelectedCurveIndex() == 3);
         CHECK (curveBank.getHoveredCellIndex() == -1);
         CHECK (curveBank.getHeaderTitleText() == "CURVE BANK");
         CHECK (curveBank.getCustomNoteText().contains ("Custom: editor coming in a later version"));
@@ -73,18 +73,20 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
         for (int i = 0; i < umbral::ui::CurveBankGrid::kNumCells; ++i)
         {
             const auto cellBounds = curveBank.getCellBounds (i);
-            CHECK (cellBounds.getWidth() > 50.0f);
+            CHECK (cellBounds.getWidth() > 45.0f);
             CHECK_THAT (cellBounds.getHeight(), WithinAbs (static_cast<float> (t::curveBankCellHeight), 1.0f));
             CHECK_FALSE (curveBank.getCellPreviewPath (i).isEmpty());
-            CHECK (curveBank.isCellDashed (i) == (i == 11));
+            CHECK (curveBank.isCellDashed (i) == (i == 15));
         }
 
         CHECK (umbral::ui::CurveBankGrid::getCellNumberText (0)  == "01");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (0)    == "Classic");
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (2)  == "03");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (2)    == "Smooth");
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (11) == "12");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (11)   == "Custom");
+        CHECK (umbral::ui::CurveBankGrid::getCellNameText (0)    == "Click Duck");
+        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (3)  == "04");
+        CHECK (umbral::ui::CurveBankGrid::getCellNameText (3)    == "Classic");
+        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (10) == "11");
+        CHECK (umbral::ui::CurveBankGrid::getCellNameText (10)   == "Trance Gate");
+        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (15) == "16");
+        CHECK (umbral::ui::CurveBankGrid::getCellNameText (15)   == "Custom");
     }
 }
 
@@ -211,14 +213,14 @@ TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with ControlStri
 
     SECTION ("Changing curve in ControlStrip ComboBox or APVTS updates CurveBankGrid selection")
     {
-        strip.getCurveCombo().setSelectedItemIndex (6, juce::sendNotificationSync); // 07 Deep
+        strip.getCurveCombo().setSelectedItemIndex (6, juce::sendNotificationSync); // 07 Logarithmic
         CHECK (curveBank.getSelectedCurveIndex() == 6);
         CHECK (juce::roundToInt (apvts.getRawParameterValue (ids::curve)->load()) == 6);
 
-        setNormalizedParam (apvts, ids::curve, 11.0f); // 12 Custom
-        CHECK (curveBank.getSelectedCurveIndex() == 11);
-        CHECK (strip.getCurveCombo().getSelectedItemIndex() == 11);
-        CHECK (curveBank.isCellDashed (11));
+        setNormalizedParam (apvts, ids::curve, 15.0f); // 16 Custom
+        CHECK (curveBank.getSelectedCurveIndex() == 15);
+        CHECK (strip.getCurveCombo().getSelectedItemIndex() == 15);
+        CHECK (curveBank.isCellDashed (15));
     }
 }
 
@@ -251,8 +253,8 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
                                                               t::fullBottomRowWidth,
                                                               t::fullBottomRowHeight));
 
-        // Selecciona celda 12 Custom y renderiza en Full
-        curveBank.selectCurveIndex (11);
+        // Selecciona celda 16 Custom y renderiza en Full
+        curveBank.selectCurveIndex (15);
         header.selectRateIndex (2); // 1/2
         header.setSyncEnabled (false);
         header.getBpmSlider().setValue (128.4, juce::sendNotificationSync);
@@ -292,7 +294,7 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
         CHECK (reopened->getHeaderBar().getSelectedRateIndex() == 2);
         CHECK_FALSE (reopened->getHeaderBar().isSyncEnabled());
         CHECK (reopened->getHeaderBar().getBpmReadoutText() == "128.4");
-        CHECK (reopened->getCurveBankGrid().getSelectedCurveIndex() == 11);
-        CHECK (juce::roundToInt (processor.getAPVTS().getRawParameterValue (ids::curve)->load()) == 11);
+        CHECK (reopened->getCurveBankGrid().getSelectedCurveIndex() == 15);
+        CHECK (juce::roundToInt (processor.getAPVTS().getRawParameterValue (ids::curve)->load()) == 15);
     }
 }

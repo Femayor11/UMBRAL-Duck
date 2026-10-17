@@ -336,7 +336,7 @@ TEST_CASE ("Processor transport: Locked and Free-Running modulate live audio whe
         return true;
     };
 
-    // Curva 03 Smooth (default): fase 0.5 es el valle (C = 0). Mix 100%.
+    // Curva 04 Classic (default, indice 3): fase 0.0 es el valle (C = 0 en [0.00, 0.10]). Mix 100%.
     setParam (processor, "mix", 1.0f);
 
     FakePlayHead playHead;
@@ -346,7 +346,7 @@ TEST_CASE ("Processor transport: Locked and Free-Running modulate live audio whe
     SECTION ("Stopped host with SYNC enabled modulates audio in Free-Running mode")
     {
         playHead.playing = false;
-        playHead.ppq     = 0.5;
+        playHead.ppq     = 0.0;
         bool ducked      = false;
         for (int n = 0; n < 100 && ! ducked; ++n)
         {
@@ -372,7 +372,7 @@ TEST_CASE ("Processor transport: Locked and Free-Running modulate live audio whe
 
     SECTION ("Playing at the curve valley attenuates")
     {
-        playHead.ppq = 0.5; // fase 0.5 en 1/4
+        playHead.ppq = 0.0; // fase 0.0 en 1/4: valle de 04 Classic (C = 0)
         auto buf = makeBuffer();
         processor.processBlock (buf, midi);
         CHECK_FALSE (isIdentical (buf));
@@ -421,8 +421,7 @@ TEST_CASE ("Processor MIDI trigger: NoteOn resets phase at exact sample offset w
     constexpr int blockSize = 256;
     processor.prepareToPlay (kFs, blockSize);
 
-    // Selecciona 01 Classic (C(0)=0, C(1)=1) con mix 100%
-    setParam (processor, "curve", 0.0f);
+    // Selecciona 04 Classic (default, C(0)=0 en [0, 0.10], C(1)=1 en [0.78, 1.00]) con mix 100%
     setParam (processor, "mix", 1.0f);
     setParam (processor, "sync", 0.0f);
 

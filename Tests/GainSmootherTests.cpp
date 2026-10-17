@@ -230,7 +230,7 @@ TEST_CASE ("GainSmoother: maximum consecutive sample delta stays below threshold
         }
     }
 
-    SECTION ("Curve 11 Step and Curve 05 Reverse discontinuities are bounded across BPM and sample rates")
+    SECTION ("Curve 11 Trance Gate and Curve 09 Reverse Pump discontinuities are bounded across BPM and sample rates")
     {
         const double sampleRates[] = { 44100.0, 48000.0, 96000.0 };
         const double bpms[]        = { 40.0, 120.0, 240.0 };
@@ -239,7 +239,7 @@ TEST_CASE ("GainSmoother: maximum consecutive sample delta stays below threshold
         {
             for (const double bpm : bpms)
             {
-                for (const int curveIndex : { 10, 4 }) // 10 = "11 Step", 4 = "05 Reverse" (wrap C(1)=0 -> C(0)=1)
+                for (const int curveIndex : { 10, 8 }) // 10 = "11 Trance Gate", 8 = "09 Reverse Pump" (wrap C(1)=0 -> C(0)=1)
                 {
                     // Un ciclo completo en Quarter note
                     const int numSamples = static_cast<int> ((60.0 / bpm) * fs) + 64;
@@ -274,7 +274,7 @@ TEST_CASE ("GainSmoother: maximum consecutive sample delta stays below threshold
                         maxDelta      = std::max (maxDelta, d);
                     }
 
-                    // Sin suavizador el salto de 11 Step o el wrap de 05 Reverse daria maxDelta ~ 1.0.
+                    // Sin suavizador el salto de 11 Trance Gate o el wrap de 09 Reverse Pump daria maxDelta ~ 1.0.
                     // Con GainSmoother (1.5 ms), maxDelta nunca supera alpha (~0.067 a 44.1 kHz).
                     CHECK (maxDelta <= engine.getGainSmoother().getAlpha() + 1.0e-4f);
                 }
@@ -294,7 +294,7 @@ TEST_CASE ("GainSmoother: processor transitions smooth curve, mix, bypass and tr
     TestPlayHead playHead;
     playHead.playing = true;
     playHead.bpm     = 120.0;
-    playHead.ppq     = 0.5; // Fase 0.5: valle de 03 Smooth (C = 0)
+    playHead.ppq     = 0.0; // Fase 0.0: valle inicial de 04 Classic (C = 0 en [0.00, 0.10])
     processor.setPlayHead (&playHead);
 
     setProcessorParam (processor, umbral::params::rawIDs::mix, 1.0f); // Mix 100% -> G = 0 en el valle

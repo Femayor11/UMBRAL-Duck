@@ -17,7 +17,7 @@ namespace umbral::dsp
 
     struct DuckingParameters
     {
-        int curveIndex           = 2;                    // 03 Smooth
+        int curveIndex           = 3;                    // 04 Classic
         float mix                = 0.70f;                // Normalizado [0, 1]
         float shift              = 0.0f;                 // Normalizado [0, 1]
         float slope              = 0.5f;                 // Normalizado [0, 1]

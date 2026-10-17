@@ -13,14 +13,15 @@ namespace umbral::ui
     namespace
     {
         constexpr const char* kSlotNumbers[CurveBankGrid::kNumCells] = {
-            "01", "02", "03", "04", "05", "06",
-            "07", "08", "09", "10", "11", "12"
+            "01", "02", "03", "04", "05", "06", "07", "08",
+            "09", "10", "11", "12", "13", "14", "15", "16"
         };
 
         constexpr const char* kCurveNames[CurveBankGrid::kNumCells] = {
-            "Classic", "Sharp", "Smooth", "Tight",
-            "Reverse", "Rhythmic", "Deep", "Light",
-            "Pump", "Flow", "Step", "Custom"
+            "Click Duck", "Tight", "Punch", "Classic",
+            "Deep", "Linear", "Logarithmic", "Slow Sweep",
+            "Reverse Pump", "Side-Drop", "Trance Gate", "Stutter",
+            "Offbeat Dip", "Sine Smooth", "Ramp Down", "Custom"
         };
     } // namespace
 
@@ -30,7 +31,7 @@ namespace umbral::ui
           slotNumberFont (UmbralLookAndFeel::getAxisScaleFont()),
           curveNameFont (UmbralLookAndFeel::getCurveNameFont()),
           headerTitleText ("CURVE BANK"),
-          customNoteText (juce::CharPointer_UTF8 ("12 \xE2\x80\x94 Custom: editor coming in a later version"))
+          customNoteText (juce::CharPointer_UTF8 ("16 \xE2\x80\x94 Custom: editor coming in a later version"))
     {
         setOpaque (false);
 
@@ -47,7 +48,7 @@ namespace umbral::ui
         }
         else
         {
-            updateCurveFromParameter (2.0f);
+            updateCurveFromParameter (static_cast<float> (dsp::defaultCurveIndex));
         }
 
         resized();
@@ -109,7 +110,10 @@ namespace umbral::ui
 
     void CurveBankGrid::updateCurveFromParameter (float rawIndexValue)
     {
-        const int index = std::clamp (juce::roundToInt (math::finiteOr (rawIndexValue, 2.0f)), 0, kNumCells - 1);
+        const int index = std::clamp (
+            juce::roundToInt (math::finiteOr (rawIndexValue, static_cast<float> (dsp::defaultCurveIndex))),
+            0,
+            kNumCells - 1);
         if (selectedCurveIndex != index)
         {
             selectedCurveIndex = index;
@@ -151,12 +155,13 @@ namespace umbral::ui
             cell.previewPath.clear();
             cell.isDashed = (i == dsp::customCurveIndex);
 
-            const auto plot = cell.previewArea.reduced (tokens::borderWidth * 2.0f, tokens::borderWidth * 3.0f);
+            const auto plot = cell.previewArea.reduced (tokens::borderWidth * 1.5f, tokens::borderWidth * 3.0f);
             if (plot.isEmpty())
                 continue;
 
             const auto nodes = dsp::getNodes (i);
             juce::Path basePath;
+            float prevY = plot.getBottom();
 
             for (int s = 0; s <= kPreviewSamples; ++s)
             {
@@ -166,9 +171,18 @@ namespace umbral::ui
                 const float y     = plot.getBottom() - value * plot.getHeight();
 
                 if (s == 0)
+                {
                     basePath.startNewSubPath (x, y);
+                }
                 else
+                {
+                    // Si hay un escalon vertical abrupto (ej. 11 Trance Gate en phi = 0.50),
+                    // inserta el vertice previo en la misma abscisa para trazar un angulo recto limpio.
+                    if (std::abs (y - prevY) > plot.getHeight() * 0.5f)
+                        basePath.lineTo (x, prevY);
                     basePath.lineTo (x, y);
+                }
+                prevY = y;
             }
 
             if (cell.isDashed)
@@ -228,7 +242,7 @@ namespace umbral::ui
     {
         namespace t = umbral::tokens;
 
-        // 1. Cabecera: "CURVE BANK" a la izquierda y nota de la ranura 12 a la derecha
+        // 1. Cabecera: "CURVE BANK" a la izquierda y nota de la ranura 16 a la derecha
         g.setFont (sectionHeaderFont);
         g.setColour (t::muted);
         g.drawText (headerTitleText, headerTitleArea, juce::Justification::centredLeft, false);
@@ -237,7 +251,7 @@ namespace umbral::ui
         g.setColour (t::muted);
         g.drawText (customNoteText, customNoteArea, juce::Justification::centredRight, false);
 
-        // 2. Hilera de 12 celdas interactivas (01..12)
+        // 2. Hilera de 16 celdas interactivas (01..16)
         for (int i = 0; i < kNumCells; ++i)
         {
             const auto& cell       = cells[static_cast<size_t> (i)];
@@ -258,7 +272,7 @@ namespace umbral::ui
             g.setColour (borderColour);
             g.drawRoundedRectangle (cardBounds, t::radius, t::borderWidth);
 
-            // Miniatura vectorial de la curva (ranura 12 ya precalculada como dashed fill path)
+            // Miniatura vectorial de la curva (ranura 16 ya precalculada como dashed fill path)
             const juce::Colour strokeColour = isSelected ? t::signal
                                                          : (isHovered ? t::bone : t::muted);
             g.setColour (strokeColour);
@@ -274,15 +288,15 @@ namespace umbral::ui
                                                     juce::PathStrokeType::rounded));
             }
 
-            // Numero de ranura 01..12 (IBM Plex Mono 10 px: Signal si activa, Muted si inactiva)
+            // Numero de ranura 01..16 (IBM Plex Mono 10 px: Signal si activa, Muted si inactiva)
             g.setFont (slotNumberFont);
             g.setColour (isSelected ? t::signal : t::muted);
             g.drawText (kSlotNumbers[i], cell.numberArea, juce::Justification::centredLeft, false);
 
-            // Nombre de la curva (Archivo SemiBold 13 px en Bone)
+            // Nombre de la curva (Archivo SemiBold en Bone, ajustado al ancho de celda)
             g.setFont (curveNameFont);
             g.setColour (t::bone);
-            g.drawText (kCurveNames[i], cell.nameArea, juce::Justification::centredLeft, false);
+            g.drawFittedText (kCurveNames[i], cell.nameArea.toNearestInt(), juce::Justification::centredLeft, 1, 0.72f);
         }
     }
 } // namespace umbral::ui

@@ -37,12 +37,12 @@ TEST_CASE ("ControlStrip default initialization matches APVTS parameter defaults
     auto& strip    = editor->getControlStrip();
     auto& channels = editor->getChannelsSelector();
 
-    SECTION ("CURVE dropdown has 12 curves and selects 03 Smooth by default")
+    SECTION ("CURVE dropdown has 16 curves and selects 04 Classic by default")
     {
         auto& combo = strip.getCurveCombo();
-        CHECK (combo.getNumItems() == 12);
-        CHECK (combo.getSelectedItemIndex() == 2);
-        CHECK (combo.getText() == "03 Smooth");
+        CHECK (combo.getNumItems() == 16);
+        CHECK (combo.getSelectedItemIndex() == 3);
+        CHECK (combo.getText() == "04 Classic");
         CHECK (combo.getHeight() == t::controlHeightLarge);
     }
 
