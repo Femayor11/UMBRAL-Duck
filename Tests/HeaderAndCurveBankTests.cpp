@@ -60,31 +60,39 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
         CHECK (header.areSecondaryLabelsVisible());
     }
 
-    SECTION ("CurveBankGrid defaults to 04 Classic with 16 valid cells and slot 16 dashed")
+    SECTION ("CurveBankGrid defaults to 04 Classic with 2x8 matrix of 16 cells and slot 15 dashed")
     {
         CHECK (curveBank.isVisible());
         CHECK (curveBank.getSelectedCurveIndex() == 3);
         CHECK (curveBank.getHoveredCellIndex() == -1);
         CHECK (curveBank.getHeaderTitleText() == "CURVE BANK");
-        CHECK (curveBank.getCustomNoteText().contains ("Custom: editor coming in a later version"));
+        CHECK (umbral::ui::CurveBankGrid::kNumRows == 2);
+        CHECK (umbral::ui::CurveBankGrid::kNumCols == 8);
 
         for (int i = 0; i < umbral::ui::CurveBankGrid::kNumCells; ++i)
         {
             const auto cellBounds = curveBank.getCellBounds (i);
-            CHECK (cellBounds.getWidth() > 45.0f);
+            CHECK (cellBounds.getWidth() > 80.0f);
             CHECK_THAT (cellBounds.getHeight(), WithinAbs (static_cast<float> (t::curveBankCellHeight), 1.0f));
             CHECK_FALSE (curveBank.getCellPreviewPath (i).isEmpty());
             CHECK (curveBank.isCellDashed (i) == (i == 15));
         }
 
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (0)  == "01");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (0)    == "Click Duck");
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (3)  == "04");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (3)    == "Classic");
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (10) == "11");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (10)   == "Trance Gate");
-        CHECK (umbral::ui::CurveBankGrid::getCellNumberText (15) == "16");
-        CHECK (umbral::ui::CurveBankGrid::getCellNameText (15)   == "Custom");
+        // Verifica estructura 2x8: fila 0 (0..7) arriba y fila 1 (8..15) abajo alineadas por columna
+        const float row0Y = curveBank.getCellBounds (0).getY();
+        const float row1Y = curveBank.getCellBounds (8).getY();
+        CHECK (row1Y > row0Y + static_cast<float> (t::curveBankCellHeight));
+
+        for (int col = 0; col < umbral::ui::CurveBankGrid::kNumCols; ++col)
+        {
+            const auto topCell = curveBank.getCellBounds (col);
+            const auto botCell = curveBank.getCellBounds (col + umbral::ui::CurveBankGrid::kNumCols);
+            CHECK_THAT (topCell.getY(), WithinAbs (row0Y, 1.0e-3f));
+            CHECK_THAT (botCell.getY(), WithinAbs (row1Y, 1.0e-3f));
+            CHECK_THAT (topCell.getX(), WithinAbs (botCell.getX(), 1.0e-3f));
+            if (col > 0)
+                CHECK (topCell.getX() > curveBank.getCellBounds (col - 1).getRight());
+        }
     }
 }
 

@@ -16,7 +16,7 @@ TEST_CASE ("WindowView default Full dimensions and fixed resize constraints", "[
     auto* editor = dynamic_cast<UmbralDuckEditor*> (baseEditor.get());
     REQUIRE (editor != nullptr);
 
-    SECTION ("Default state starts in Full view 960x600 and is not arbitrarily resizable")
+    SECTION ("Default state starts in Full view 780x540 and is not arbitrarily resizable")
     {
         CHECK_FALSE (processor.isCompactView());
         CHECK_FALSE (editor->isCompactView());
@@ -31,8 +31,8 @@ TEST_CASE ("WindowView default Full dimensions and fixed resize constraints", "[
         CHECK (constrainer->getMinimumHeight() == t::windowFullHeight);
         CHECK (constrainer->getMaximumHeight() == t::windowFullHeight);
 
-        // Un intento de redimensionar a un tamano arbitrario se restringe a 960x600
-        juce::Rectangle<int> arbitraryBounds (0, 0, 700, 500);
+        // Un intento de redimensionar a un tamano arbitrario se restringe a 780x540
+        juce::Rectangle<int> arbitraryBounds (0, 0, 900, 650);
         constrainer->checkBounds (arbitraryBounds,
                                   editor->getBounds(),
                                   juce::Rectangle<int> (0, 0, 3840, 2160),

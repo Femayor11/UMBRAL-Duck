@@ -10,21 +10,22 @@
 
 namespace umbral::ui
 {
-    // Banco inferior de 16 celdas interactivas de curvas (docs/DESIGN.md §4, §5 y §6).
-    // En vista Full ocupa 920 x 114 px (x = 20, y = 466); en vista Compact permanece oculto.
+    // Banco inferior de 16 celdas interactivas de curvas en matriz 2x8 (docs/DESIGN.md §4, §5 y §6).
+    // Fila 0: ranuras 0..7 (sidechain frontal). Fila 1: ranuras 8..15 (gating, ritmicas y 15 Custom).
+    // En vista Full ocupa 748 x 149 px (x = 16, y = 375); en vista Compact permanece oculto.
     // Enlazado bidireccionalmente al parametro "curve" de APVTS.
     class CurveBankGrid final : public juce::Component
     {
     public:
-        static constexpr int kNumCells        = dsp::numCurves;
-        static constexpr int kPreviewSamples  = 96;
+        static constexpr int kNumCells       = dsp::numCurves;
+        static constexpr int kNumRows        = 2;
+        static constexpr int kNumCols        = 8;
+        static constexpr int kPreviewSamples = 96;
 
         struct CellLayout
         {
             juce::Rectangle<float> bounds;
             juce::Rectangle<float> previewArea;
-            juce::Rectangle<float> numberArea;
-            juce::Rectangle<float> nameArea;
             juce::Path             previewPath;
             bool                   isDashed = false;
         };
@@ -48,10 +49,7 @@ namespace umbral::ui
         [[nodiscard]] const juce::Path& getCellPreviewPath (int index) const noexcept;
         [[nodiscard]] bool isCellDashed (int index) const noexcept;
 
-        [[nodiscard]] static juce::String getCellNumberText (int index);
-        [[nodiscard]] static juce::String getCellNameText (int index);
         [[nodiscard]] const juce::String& getHeaderTitleText() const noexcept { return headerTitleText; }
-        [[nodiscard]] const juce::String& getCustomNoteText() const noexcept { return customNoteText; }
 
     private:
         void updateCurveFromParameter (float rawIndexValue);
@@ -61,15 +59,8 @@ namespace umbral::ui
         int hoveredCellIndex   = -1;
 
         juce::Font sectionHeaderFont;
-        juce::Font customNoteFont;
-        juce::Font slotNumberFont;
-        juce::Font curveNameFont;
-
         juce::String headerTitleText;
-        juce::String customNoteText;
-
         juce::Rectangle<float> headerTitleArea;
-        juce::Rectangle<float> customNoteArea;
 
         std::array<CellLayout, kNumCells> cells {};
 

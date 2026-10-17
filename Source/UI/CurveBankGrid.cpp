@@ -10,28 +10,9 @@
 
 namespace umbral::ui
 {
-    namespace
-    {
-        constexpr const char* kSlotNumbers[CurveBankGrid::kNumCells] = {
-            "01", "02", "03", "04", "05", "06", "07", "08",
-            "09", "10", "11", "12", "13", "14", "15", "16"
-        };
-
-        constexpr const char* kCurveNames[CurveBankGrid::kNumCells] = {
-            "Click Duck", "Tight", "Punch", "Classic",
-            "Deep", "Linear", "Logarithmic", "Slow Sweep",
-            "Reverse Pump", "Side-Drop", "Trance Gate", "Stutter",
-            "Offbeat Dip", "Sine Smooth", "Ramp Down", "Custom"
-        };
-    } // namespace
-
     CurveBankGrid::CurveBankGrid (juce::AudioProcessorValueTreeState& apvts)
         : sectionHeaderFont (UmbralLookAndFeel::getSectionHeaderFont()),
-          customNoteFont (UmbralLookAndFeel::getBarPositionFont()),
-          slotNumberFont (UmbralLookAndFeel::getAxisScaleFont()),
-          curveNameFont (UmbralLookAndFeel::getCurveNameFont()),
-          headerTitleText ("CURVE BANK"),
-          customNoteText (juce::CharPointer_UTF8 ("16 \xE2\x80\x94 Custom: editor coming in a later version"))
+          headerTitleText ("CURVE BANK")
     {
         setOpaque (false);
 
@@ -57,18 +38,6 @@ namespace umbral::ui
     CurveBankGrid::~CurveBankGrid()
     {
         curveAttachment.reset();
-    }
-
-    juce::String CurveBankGrid::getCellNumberText (int index)
-    {
-        const int clamped = std::clamp (index, 0, kNumCells - 1);
-        return juce::String (kSlotNumbers[clamped]);
-    }
-
-    juce::String CurveBankGrid::getCellNameText (int index)
-    {
-        const int clamped = std::clamp (index, 0, kNumCells - 1);
-        return juce::String (kCurveNames[clamped]);
     }
 
     juce::Rectangle<float> CurveBankGrid::getCellBounds (int index) const noexcept
@@ -155,7 +124,7 @@ namespace umbral::ui
             cell.previewPath.clear();
             cell.isDashed = (i == dsp::customCurveIndex);
 
-            const auto plot = cell.previewArea.reduced (tokens::borderWidth * 1.5f, tokens::borderWidth * 3.0f);
+            const auto plot = cell.previewArea;
             if (plot.isEmpty())
                 continue;
 
@@ -209,30 +178,29 @@ namespace umbral::ui
             return;
 
         const float headerH = std::min (static_cast<float> (t::curveBankHeaderHeight), bounds.getHeight());
-        headerTitleArea = { 0.0f, 0.0f, bounds.getWidth() * 0.35f, headerH };
-        customNoteArea  = { bounds.getWidth() * 0.35f, 0.0f, bounds.getWidth() * 0.65f, headerH };
+        headerTitleArea = { 0.0f, 0.0f, bounds.getWidth(), headerH };
 
-        const float cellsTop    = bounds.getHeight() - std::min (static_cast<float> (t::curveBankCellHeight),
-                                                                 std::max (0.0f, bounds.getHeight() - headerH));
-        const float cellH       = std::max (0.0f, bounds.getHeight() - cellsTop);
-        const float gap         = static_cast<float> (t::curveBankCellGap);
-        const float totalGapW   = gap * static_cast<float> (kNumCells - 1);
-        const float availW      = std::max (0.0f, bounds.getWidth() - totalGapW);
-        const float cellW       = availW / static_cast<float> (kNumCells);
-        const float cellPad     = static_cast<float> (t::curveBankCellPadding);
-        const float numberH     = static_cast<float> (t::curveBankNumberHeight);
-        const float nameH       = static_cast<float> (t::curveBankNameHeight);
+        const float cellsTop  = headerH;
+        const float gridH     = std::max (0.0f, bounds.getHeight() - cellsTop);
+        const float gap       = static_cast<float> (t::curveBankCellGap);
+        const float totalGapW = gap * static_cast<float> (kNumCols - 1);
+        const float totalGapH = gap * static_cast<float> (kNumRows - 1);
+        const float availW    = std::max (0.0f, bounds.getWidth() - totalGapW);
+        const float availH    = std::max (0.0f, gridH - totalGapH);
+        const float cellW     = availW / static_cast<float> (kNumCols);
+        const float cellH     = availH / static_cast<float> (kNumRows);
+        const float cellPad   = static_cast<float> (t::curveBankCellPadding);
 
         for (int i = 0; i < kNumCells; ++i)
         {
-            auto& cell = cells[static_cast<size_t> (i)];
-            const float x = static_cast<float> (i) * (cellW + gap);
-            cell.bounds = { x, cellsTop, cellW, cellH };
+            const int row   = i / kNumCols;
+            const int col   = i % kNumCols;
+            const float x   = static_cast<float> (col) * (cellW + gap);
+            const float y   = cellsTop + static_cast<float> (row) * (cellH + gap);
 
-            auto inner = cell.bounds.reduced (cellPad);
-            cell.nameArea    = inner.removeFromBottom (nameH);
-            cell.numberArea  = inner.removeFromBottom (numberH);
-            cell.previewArea = inner;
+            auto& cell       = cells[static_cast<size_t> (i)];
+            cell.bounds      = { x, y, cellW, cellH };
+            cell.previewArea = cell.bounds.reduced (cellPad);
         }
 
         rebuildCellPaths();
@@ -242,21 +210,17 @@ namespace umbral::ui
     {
         namespace t = umbral::tokens;
 
-        // 1. Cabecera: "CURVE BANK" a la izquierda y nota de la ranura 16 a la derecha
+        // 1. Cabecera: "CURVE BANK" a la izquierda
         g.setFont (sectionHeaderFont);
         g.setColour (t::muted);
         g.drawText (headerTitleText, headerTitleArea, juce::Justification::centredLeft, false);
 
-        g.setFont (customNoteFont);
-        g.setColour (t::muted);
-        g.drawText (customNoteText, customNoteArea, juce::Justification::centredRight, false);
-
-        // 2. Hilera de 16 celdas interactivas (01..16)
+        // 2. Matriz 2x8 de 16 celdas interactivas (solo miniatura vectorial)
         for (int i = 0; i < kNumCells; ++i)
         {
-            const auto& cell       = cells[static_cast<size_t> (i)];
-            const bool isSelected  = (i == selectedCurveIndex);
-            const bool isHovered   = (i == hoveredCellIndex);
+            const auto& cell      = cells[static_cast<size_t> (i)];
+            const bool isSelected = (i == selectedCurveIndex);
+            const bool isHovered  = (i == hoveredCellIndex);
 
             const auto cardBounds = cell.bounds.reduced (t::borderWidth * 0.5f);
             if (cardBounds.isEmpty())
@@ -272,7 +236,7 @@ namespace umbral::ui
             g.setColour (borderColour);
             g.drawRoundedRectangle (cardBounds, t::radius, t::borderWidth);
 
-            // Miniatura vectorial de la curva (ranura 16 ya precalculada como dashed fill path)
+            // Miniatura vectorial de la curva (ranura 15 precalculada como dashed fill path)
             const juce::Colour strokeColour = isSelected ? t::signal
                                                          : (isHovered ? t::bone : t::muted);
             g.setColour (strokeColour);
@@ -287,16 +251,6 @@ namespace umbral::ui
                                                     juce::PathStrokeType::curved,
                                                     juce::PathStrokeType::rounded));
             }
-
-            // Numero de ranura 01..16 (IBM Plex Mono 10 px: Signal si activa, Muted si inactiva)
-            g.setFont (slotNumberFont);
-            g.setColour (isSelected ? t::signal : t::muted);
-            g.drawText (kSlotNumbers[i], cell.numberArea, juce::Justification::centredLeft, false);
-
-            // Nombre de la curva (Archivo SemiBold en Bone, ajustado al ancho de celda)
-            g.setFont (curveNameFont);
-            g.setColour (t::bone);
-            g.drawFittedText (kCurveNames[i], cell.nameArea.toNearestInt(), juce::Justification::centredLeft, 1, 0.72f);
         }
     }
 } // namespace umbral::ui

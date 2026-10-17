@@ -176,8 +176,8 @@ namespace umbral::ui
         const float pad     = static_cast<float> (tokens::panelPadding);
         const float headerH = static_cast<float> (tokens::knobHeaderHeight);
 
-        // 1. Nivel superior: MIX (ocupa el espacio superior liberado en Full y todo el panel en Compact)
-        const float fullMixH = static_cast<float> (tokens::curveSectionHeight + tokens::mixSectionHeightFull);
+        // 1. Nivel superior: MIX (174 px en Full y todo el panel en Compact)
+        const float fullMixH = static_cast<float> (tokens::mixSectionHeightFull);
         const float mixSectionH = compactMode
                                       ? panelBounds.getHeight()
                                       : std::min (fullMixH, panelBounds.getHeight());

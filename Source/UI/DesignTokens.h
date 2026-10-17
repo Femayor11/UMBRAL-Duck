@@ -25,15 +25,15 @@ namespace umbral::tokens
     inline juce::Colour curveFill() noexcept   { return signal.withAlpha (curveFillAlpha); }
 
     // --- Geometría y Layout (px) (docs/DESIGN.md §2 y §5) ---
-    inline constexpr int   windowFullWidth      = 960;
-    inline constexpr int   windowFullHeight     = 600;
+    inline constexpr int   windowFullWidth      = 780;
+    inline constexpr int   windowFullHeight     = 540;
     inline constexpr int   windowCompactWidth   = 560;
     inline constexpr int   windowCompactHeight  = 360;
     inline constexpr float radius               = 4.0f;
     inline constexpr float borderWidth          = 1.0f;
-    inline constexpr int   windowPadding        = 20;
+    inline constexpr int   windowPadding        = 16;
     inline constexpr int   windowPaddingCompact = 16;
-    inline constexpr int   panelGap             = 20;
+    inline constexpr int   panelGap             = 14;
     inline constexpr int   panelGapCompact      = 16;
     inline constexpr int   panelPadding         = 14;
     inline constexpr int   controlHeightSmall   = 32;
@@ -44,16 +44,16 @@ namespace umbral::tokens
     inline constexpr float curveStroke          = 2.5f;
     inline constexpr float playheadWidth        = 1.0f;
 
-    // --- Layout vista Full (docs/DESIGN.md §5) ---
-    inline constexpr int   fullHeaderDividerY   = 76;    // Linea divisoria horizontal Hairline en Full
-    inline constexpr int   fullContentTop       = 77;    // Inicio de la fila media de paneles
-    inline constexpr int   fullPanelRowHeight   = 368;   // Altura de la fila media (y = 77 .. 445)
-    inline constexpr int   fullLeftPanelWidth   = 193;   // CURVE & KNOBS
-    inline constexpr int   fullCenterPanelWidth = 534;   // GAIN RESPONSE
-    inline constexpr int   fullRightPanelWidth  = 153;   // CHANNELS & LEVEL
-    inline constexpr int   fullBottomRowTop     = 466;   // Inicio de la fila inferior CURVE BANK (y = 466 .. 580)
-    inline constexpr int   fullBottomRowWidth   = 920;   // Ancho total del CURVE BANK en Full
-    inline constexpr int   fullBottomRowHeight  = 114;   // Altura total del CURVE BANK en Full
+    // --- Layout vista Full (780 x 540 px) ---
+    inline constexpr int   fullHeaderDividerY   = 56;    // Linea divisoria horizontal Hairline en Full
+    inline constexpr int   fullContentTop       = 71;    // Inicio de la fila media de paneles (56 + 1 + 14)
+    inline constexpr int   fullPanelRowHeight   = 290;   // Altura de la fila media (y = 71 .. 361)
+    inline constexpr int   fullLeftPanelWidth   = 176;   // MIX & SHIFT/SLOPE
+    inline constexpr int   fullCenterPanelWidth = 408;   // GAIN RESPONSE
+    inline constexpr int   fullRightPanelWidth  = 136;   // CHANNELS & LEVEL
+    inline constexpr int   fullBottomRowTop     = 375;   // Inicio de la fila inferior CURVE BANK (y = 375 .. 524)
+    inline constexpr int   fullBottomRowWidth   = 748;   // Ancho total del CURVE BANK en Full (780 - 2 * 16)
+    inline constexpr int   fullBottomRowHeight  = 149;   // Altura total del CURVE BANK en Full (21 + 2 * 60 + 8)
 
     // --- Layout vista Compact (docs/DESIGN.md §5) ---
     inline constexpr int   compactHeaderDividerY  = 48;  // Linea divisoria horizontal Hairline en Compact
@@ -80,14 +80,14 @@ namespace umbral::tokens
     inline constexpr int   headerBypassButtonWidth    = 84;
     inline constexpr int   headerControlGap           = 8;
 
-    // --- Banco de Curvas (CurveBankGrid, 16 celdas en 920 px) ---
-    inline constexpr int   curveBankHeaderHeight      = 24;  // Cabecera CURVE BANK + nota 16 Custom
-    inline constexpr int   curveBankCellGap           = 6;   // Separacion horizontal entre las 16 celdas
-    inline constexpr int   curveBankCellHeight        = 82;  // Altura de cada celda (y = 498 .. 580)
-    inline constexpr int   curveBankCellPadding       = 5;   // Padding interior de cada celda
-    inline constexpr int   curveBankPreviewHeight     = 36;  // Zona superior para la miniatura vectorial
-    inline constexpr int   curveBankNumberHeight      = 13;  // Fila para el numero de ranura 01..16
-    inline constexpr int   curveBankNameHeight        = 16;  // Fila para el nombre de la curva
+    // --- Banco de Curvas (CurveBankGrid, matriz 2x8 en 748 x 149 px) ---
+    inline constexpr int   curveBankHeaderHeight      = 21;  // Cabecera CURVE BANK
+    inline constexpr int   curveBankCellGap           = 8;   // Separacion horizontal y vertical entre celdas
+    inline constexpr int   curveBankCellHeight        = 60;  // Altura de cada celda en la matriz 2x8
+    inline constexpr int   curveBankCellPadding       = 8;   // Padding interior de cada celda
+    inline constexpr int   curveBankPreviewHeight     = 44;  // Altura util de la miniatura vectorial
+    inline constexpr int   curveBankNumberHeight      = 13;
+    inline constexpr int   curveBankNameHeight        = 16;
     inline constexpr float curveBankStrokeWidth       = 1.5f;
 
     // --- Panel GAIN RESPONSE ---
@@ -107,9 +107,9 @@ namespace umbral::tokens
     inline constexpr int   meterScaleWidth      = 34;      // Columna central de escala dB
     inline constexpr int   channelsSectionHeight = 82;     // Altura del bloque superior CHANNELS en panel derecho
 
-    // --- Panel CURVE & KNOBS (ControlStrip) ---
-    inline constexpr int   curveSectionHeight    = 82;     // Altura del bloque superior CURVE (Full y Compact)
-    inline constexpr int   mixSectionHeightFull  = 166;    // Altura del bloque central MIX en vista Full
+    // --- Panel MIX & KNOBS (ControlStrip) ---
+    inline constexpr int   curveSectionHeight    = 82;
+    inline constexpr int   mixSectionHeightFull  = 174;    // Altura del bloque superior MIX en vista Full (290 -> 174 + 1 + 115)
     inline constexpr int   knobMixDiameter       = 80;     // Diametro de perilla principal MIX (DESIGN.md §5)
     inline constexpr int   knobSecondaryDiameter = 44;     // Diametro de perillas SHIFT y SLOPE (DESIGN.md §5)
     inline constexpr int   knobHeaderHeight      = 16;     // Altura de fila de encabezado de seccion

@@ -40,8 +40,8 @@ TEST_CASE ("DesignTokens match official hex palette and geometry", "[ui][tokens]
 
     SECTION ("Window dimensions, strokes and sweep match DESIGN.md and AGENTS.md")
     {
-        CHECK (umbral::tokens::windowFullWidth     == 960);
-        CHECK (umbral::tokens::windowFullHeight    == 600);
+        CHECK (umbral::tokens::windowFullWidth     == 780);
+        CHECK (umbral::tokens::windowFullHeight    == 540);
         CHECK (umbral::tokens::windowCompactWidth  == 560);
         CHECK (umbral::tokens::windowCompactHeight == 360);
 
