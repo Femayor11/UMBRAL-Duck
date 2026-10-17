@@ -29,6 +29,7 @@ namespace umbral::dsp
         TimeSignature timeSig { 4, 4 };
         bool hasBarStartPpq  = false;
         double barStartPpq   = 0.0;
+        double phaseOffset   = 0.0;
     };
 
     // Posicion musical 1-indexada para el readout "1.2.3" (Bar.Beat.Subdivision).

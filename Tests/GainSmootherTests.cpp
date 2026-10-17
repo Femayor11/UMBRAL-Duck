@@ -1,6 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include "DSP/CurveBank.h"
 #include "DSP/GainSmoother.h"
 #include "DSP/DuckingEngine.h"
 #include "DSP/PhaseClock.h"
@@ -334,26 +335,25 @@ TEST_CASE ("GainSmoother: processor transitions smooth curve, mix, bypass and tr
         CHECK (maxDelta < 0.08f);
     }
 
-    SECTION ("Stopping host transport ramps smoothly to unity gain")
+    SECTION ("Stopping host transport continues smoothly in Free-Running mode without click")
     {
         auto b1 = makeUnityBuffer();
         processor.processBlock (b1, midi);
         const float lastDucked = b1.getSample (0, kBlockLen - 1);
         REQUIRE (lastDucked < 0.05f);
 
-        // Detener el host: TransportMode pasa a Bypass (objetivo G = 1.0)
+        // Detener el host: TransportMode pasa a Free continuando desde la ultima fase sin salto
         playHead.playing = false;
         auto b2 = makeUnityBuffer();
         processor.processBlock (b2, midi);
 
-        CHECK (b2.getSample (0, 0) < 0.2f);
-        CHECK (b2.getSample (0, kBlockLen - 1) == 1.0f);
+        CHECK (b2.getSample (0, 0) < 0.05f);
 
         float maxDelta = std::abs (b2.getSample (0, 0) - lastDucked);
         for (int i = 1; i < kBlockLen; ++i)
             maxDelta = std::max (maxDelta, std::abs (b2.getSample (0, i) - b2.getSample (0, i - 1)));
 
-        CHECK (maxDelta < 0.08f);
+        CHECK (maxDelta < 0.01f);
     }
 
     SECTION ("Abrupt mix change from 100 percent to 0 percent is smoothed without click")
@@ -378,4 +378,56 @@ TEST_CASE ("GainSmoother: processor transitions smooth curve, mix, bypass and tr
     }
 
     processor.setPlayHead (nullptr);
+}
+
+TEST_CASE ("DuckingEngine: cyclic wrap across phi 1.0 to 0.0 maintains C1 continuity without clicks", "[dsp][smoother][wrap]")
+{
+    constexpr double kFs = 48000.0;
+    constexpr double kBpm = 120.0;
+    // Dos ciclos completos en Quarter note para cruzar phi = 1.0 -> 0.0 en medio del buffer
+    const int numSamples = static_cast<int> ((60.0 / kBpm) * kFs * 2.0);
+
+    std::vector<float> phases (static_cast<size_t> (numSamples));
+    dsp::MusicalContext ctx;
+    ctx.ppqPosition = 0.0;
+    ctx.bpm         = kBpm;
+    ctx.sampleRate  = kFs;
+    dsp::fillBlockPhases (ctx, dsp::RateDivision::Quarter, phases);
+
+    // Verifica para todas las curvas (excluyendo 11 Step que tiene un escalon interno en 0.5)
+    for (int curveIndex = 0; curveIndex < dsp::numCurves; ++curveIndex)
+    {
+        if (curveIndex == 10)
+            continue;
+
+        std::vector<float> chL (static_cast<size_t> (numSamples), 1.0f);
+        std::vector<float> chR (static_cast<size_t> (numSamples), 1.0f);
+        float* channels[2] = { chL.data(), chR.data() };
+
+        dsp::DuckingEngine engine;
+        engine.prepare (kFs);
+
+        dsp::DuckingParameters params;
+        params.curveIndex = curveIndex;
+        params.mix        = 1.0f;
+        params.shift      = 0.0f;
+        params.slope      = 0.5f;
+        params.channels   = dsp::ChannelsMode::Stereo;
+        params.bypass     = false;
+
+        engine.process (channels, 2, numSamples, params, phases);
+
+        // El cruce de ciclo ocurre en la mitad del buffer (sample ~ 24000)
+        const int wrapCenter = numSamples / 2;
+        float maxWrapDelta   = 0.0f;
+        for (int i = wrapCenter - 32; i < wrapCenter + 256; ++i)
+        {
+            const float d = std::abs (chL[static_cast<size_t> (i)] - chL[static_cast<size_t> (i - 1)]);
+            maxWrapDelta  = std::max (maxWrapDelta, d);
+        }
+
+        // Con la micro-rampa Hermite C1 de 2.0 ms (96 muestras a 48 kHz), el salto maximo por muestra
+        // en el wrap es <= 1.5 / 96 ~ 0.0156 (muy por debajo del salto IIR de ~0.0915)
+        CHECK (maxWrapDelta <= 0.020f);
+    }
 }

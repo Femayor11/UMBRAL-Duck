@@ -10,6 +10,7 @@ namespace umbral::dsp
     {
     public:
         static constexpr float kDefaultSmoothingMs = 1.5f;
+        static constexpr float kAntiPopRampMs      = 2.0f;
         static constexpr float kSnapEpsilon        = 1.0e-6f;
 
         GainSmoother() noexcept = default;
@@ -23,6 +24,9 @@ namespace umbral::dsp
         // Marca el suavizador para que la siguiente muestra fije el estado inicial sin rampa de arranque.
         void resetToNextSample() noexcept;
 
+        // Inicia una micro-rampa cubica Hermite (smoothstep de 2.0 ms, C1 continua) desde el valor actual.
+        void triggerAntiPopRamp() noexcept;
+
         // Procesa una muestra hacia targetGain y devuelve la ganancia suavizada en [0, 1].
         [[nodiscard]] float processSample (float targetGain) noexcept;
 
@@ -32,10 +36,14 @@ namespace umbral::dsp
         [[nodiscard]] float getCurrentValue() const noexcept { return currentValue; }
         [[nodiscard]] float getAlpha() const noexcept { return alpha; }
         [[nodiscard]] bool isPrimed() const noexcept { return primed; }
+        [[nodiscard]] bool isRampActive() const noexcept { return rampSamplesRemaining > 0; }
 
     private:
-        float alpha        = 1.0f;
-        float currentValue = 1.0f;
-        bool primed        = true;
+        float alpha              = 1.0f;
+        float currentValue       = 1.0f;
+        float rampStartValue     = 1.0f;
+        int rampTotalSamples     = 0;
+        int rampSamplesRemaining = 0;
+        bool primed              = true;
     };
 }

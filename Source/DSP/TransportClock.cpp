@@ -32,9 +32,43 @@ namespace umbral::dsp
 
     void TransportClock::reset() noexcept
     {
+        freePhase         = 0.0;
+        lockedPhaseOffset = 0.0;
+        wasLocked         = false;
+        lastPhase         = 0.0f;
+        lastTick          = {};
+    }
+
+    void TransportClock::triggerNoteOn (bool sync, const HostTransport& host, double paramBpm,
+                                        RateDivision rate, int sampleOffset) noexcept
+    {
         freePhase = 0.0;
         lastPhase = 0.0f;
-        lastTick  = {};
+
+        const bool canLock = sync && host.hasInfo && host.isPlaying && host.hasPpq && std::isfinite (host.ppq);
+        if (canLock)
+        {
+            const double fallbackBpm = validBpm (paramBpm) ? paramBpm : kDefaultBpm;
+            const double bpm         = (host.hasBpm && validBpm (host.bpm)) ? host.bpm : fallbackBpm;
+            const TimeSignature ts   = host.hasTimeSig ? sanitizeTimeSignature (host.timeSig) : TimeSignature {};
+
+            MusicalContext ctx;
+            ctx.bpm            = bpm;
+            ctx.sampleRate     = sampleRate;
+            ctx.timeSig        = ts;
+            ctx.hasBarStartPpq = host.hasBarStartPpq && std::isfinite (host.barStartPpq);
+            ctx.barStartPpq    = ctx.hasBarStartPpq ? host.barStartPpq : 0.0;
+            ctx.ppqPosition    = host.ppq + static_cast<double> (std::max (sampleOffset, 0)) * bpm / (60.0 * sampleRate);
+            ctx.phaseOffset    = 0.0;
+
+            const float rawPhase = computePhaseAtSample (ctx, rate, 0);
+            lockedPhaseOffset    = -static_cast<double> (rawPhase);
+            wasLocked            = true;
+        }
+        else
+        {
+            lockedPhaseOffset = 0.0;
+        }
     }
 
     TransportResult TransportClock::process (bool sync, const HostTransport& host, double paramBpm,
@@ -47,53 +81,55 @@ namespace umbral::dsp
 
         TransportResult result;
 
-        if (sync)
+        const bool canLock = sync && host.hasInfo && host.isPlaying && host.hasPpq && std::isfinite (host.ppq);
+
+        if (canLock)
         {
-            const bool canLock = host.hasInfo && host.isPlaying && host.hasPpq && std::isfinite (host.ppq);
+            if (! wasLocked)
+                lockedPhaseOffset = 0.0;
 
-            if (canLock)
-            {
-                MusicalContext ctx;
-                const double bpm = (host.hasBpm && validBpm (host.bpm)) ? host.bpm : fallbackBpm;
+            MusicalContext ctx;
+            const double bpm = (host.hasBpm && validBpm (host.bpm)) ? host.bpm : fallbackBpm;
 
-                ctx.bpm            = bpm;
-                ctx.sampleRate     = sampleRate;
-                ctx.timeSig        = ts;
-                ctx.hasBarStartPpq = host.hasBarStartPpq && std::isfinite (host.barStartPpq);
-                ctx.barStartPpq    = ctx.hasBarStartPpq ? host.barStartPpq : 0.0;
-                ctx.ppqPosition    = host.ppq + static_cast<double> (std::max (sampleOffset, 0)) * bpm / (60.0 * sampleRate);
+            ctx.bpm            = bpm;
+            ctx.sampleRate     = sampleRate;
+            ctx.timeSig        = ts;
+            ctx.hasBarStartPpq = host.hasBarStartPpq && std::isfinite (host.barStartPpq);
+            ctx.barStartPpq    = ctx.hasBarStartPpq ? host.barStartPpq : 0.0;
+            ctx.ppqPosition    = host.ppq + static_cast<double> (std::max (sampleOffset, 0)) * bpm / (60.0 * sampleRate);
+            ctx.phaseOffset    = lockedPhaseOffset;
 
-                result.endPhase = fillBlockPhases (ctx, rate, outPhases);
-                result.mode     = TransportMode::Locked;
-                result.tick     = computeBarBeatTick (ctx);
+            result.endPhase = fillBlockPhases (ctx, rate, outPhases);
+            result.mode     = TransportMode::Locked;
+            result.tick     = computeBarBeatTick (ctx);
 
-                // Mantiene el acumulador libre continuo para un cambio Locked -> Free sin salto.
-                freePhase = static_cast<double> (result.endPhase);
-                lastPhase = result.endPhase;
-                lastTick  = result.tick;
-                return result;
-            }
-
-            // SYNC on sin reproduccion o sin datos: fase congelada, ganancia 1.0 (Bypass).
-            std::fill (outPhases.begin(), outPhases.end(), lastPhase);
-            result.mode     = TransportMode::Bypass;
-            result.tick     = lastTick;
-            result.endPhase = lastPhase;
+            // Mantiene el acumulador libre continuo para un cambio Locked -> Free sin salto.
+            freePhase = static_cast<double> (result.endPhase);
+            lastPhase = result.endPhase;
+            lastTick  = result.tick;
+            wasLocked = true;
             return result;
         }
 
-        // Free: acumulador interno con dt = 1/fs, gobernado exclusivamente por el parametro bpm.
+        // Modo Free-Running (SYNC off o DAW en Stop / sin PPQ):
+        // Si sync es true y el host reporta un BPM valido, usa host.bpm; de lo contrario usa paramBpm.
+        wasLocked         = false;
+        lockedPhaseOffset = 0.0;
+
+        const double activeBpm = (sync && host.hasInfo && host.hasBpm && validBpm (host.bpm))
+                                     ? host.bpm
+                                     : fallbackBpm;
         const double length = cycleLengthQuarterNotes (rate, ts);
 
         MusicalContext ctx;
-        ctx.bpm         = fallbackBpm;
+        ctx.bpm         = activeBpm;
         ctx.sampleRate  = sampleRate;
         ctx.timeSig     = ts;
         ctx.ppqPosition = freePhase * length;
 
         fillBlockPhases (ctx, rate, outPhases);
 
-        const double deltaPhi = computeDeltaPhi (fallbackBpm, sampleRate, rate, ts);
+        const double deltaPhi = computeDeltaPhi (activeBpm, sampleRate, rate, ts);
         freePhase = fracDouble (freePhase + numSamples * deltaPhi);
 
         result.mode     = TransportMode::Free;

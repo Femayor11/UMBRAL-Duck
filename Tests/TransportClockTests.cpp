@@ -229,46 +229,47 @@ TEST_CASE ("TransportClock: Free mode accumulates internally with dt = 1/fs", "[
     }
 }
 
-TEST_CASE ("TransportClock: stopped or missing host yields frozen phase and Bypass mode", "[dsp][transport]")
+TEST_CASE ("TransportClock: Free-running advances when host is stopped even with SYNC enabled", "[dsp][transport]")
 {
     dsp::TransportClock clock;
     clock.prepare (kFs);
     std::vector<float> ph (128);
 
-    SECTION ("No PlayHead info")
+    SECTION ("No PlayHead info advances in Free mode using paramBpm")
     {
         const auto r = clock.process (true, {}, 120.0, dsp::RateDivision::Quarter, ph);
-        CHECK (r.mode == dsp::TransportMode::Bypass);
+        CHECK (r.mode == dsp::TransportMode::Free);
         CHECK (allUnitFinite (ph));
-        for (const auto p : ph)
-            CHECK (p == 0.0f);
+        CHECK_THAT (ph[0], WithinAbs (0.0, 1.0e-6));
+        CHECK_THAT (static_cast<double> (ph[1] - ph[0]), WithinAbs (120.0 / (60.0 * kFs), 1.0e-7));
     }
 
-    SECTION ("Stopped host keeps last valid phase")
+    SECTION ("Stopped host continues advancing from last valid phase using host BPM")
     {
-        clock.process (true, playingHost (0.5), 120.0, dsp::RateDivision::Quarter, ph);
+        clock.process (true, playingHost (0.5, 140.0), 120.0, dsp::RateDivision::Quarter, ph);
         const float lastValid = clock.getLastPhase();
 
-        auto h = playingHost (7.0);
+        auto h = playingHost (7.0, 140.0);
         h.isPlaying = false;
         const auto r = clock.process (true, h, 120.0, dsp::RateDivision::Quarter, ph);
 
-        CHECK (r.mode == dsp::TransportMode::Bypass);
-        for (const auto p : ph)
-            CHECK (p == lastValid);
+        CHECK (r.mode == dsp::TransportMode::Free);
+        CHECK_THAT (ph[0], WithinAbs (static_cast<double> (lastValid), 1.0e-6));
+        CHECK_THAT (static_cast<double> (ph[1] - ph[0]), WithinAbs (140.0 / (60.0 * kFs), 1.0e-7));
     }
 
-    SECTION ("Playing without ppq is Bypass")
+    SECTION ("Playing without valid ppq falls back to Free-running")
     {
         auto h = playingHost (0.0);
         h.hasPpq = false;
-        CHECK (clock.process (true, h, 120.0, dsp::RateDivision::Quarter, ph).mode == dsp::TransportMode::Bypass);
+        CHECK (clock.process (true, h, 120.0, dsp::RateDivision::Quarter, ph).mode == dsp::TransportMode::Free);
 
         h.hasPpq = true;
         h.ppq    = std::numeric_limits<double>::infinity();
         const auto r = clock.process (true, h, 120.0, dsp::RateDivision::Quarter, ph);
-        CHECK (r.mode == dsp::TransportMode::Bypass);
+        CHECK (r.mode == dsp::TransportMode::Free);
         CHECK (allUnitFinite (ph));
+        CHECK (ph[1] > ph[0]);
     }
 }
 
@@ -293,7 +294,7 @@ TEST_CASE ("TransportClock: mode transitions stay continuous and finite", "[dsp]
     {
         auto stopped = playingHost (2.0);
         stopped.isPlaying = false;
-        CHECK (clock.process (true, stopped, 120.0, dsp::RateDivision::Quarter, ph).mode == dsp::TransportMode::Bypass);
+        CHECK (clock.process (true, stopped, 120.0, dsp::RateDivision::Quarter, ph).mode == dsp::TransportMode::Free);
         clock.process (true, playingHost (2.25), 120.0, dsp::RateDivision::Quarter, ph);
         CHECK_THAT (ph[0], WithinAbs (0.25, 1.0e-6));
     }
@@ -312,7 +313,7 @@ TEST_CASE ("TransportClock: mode transitions stay continuous and finite", "[dsp]
     }
 }
 
-TEST_CASE ("Processor transport: Bypass keeps output bit-identical, Locked and Free duck", "[transport][processor]")
+TEST_CASE ("Processor transport: Locked and Free-Running modulate live audio when playing or stopped", "[transport][processor]")
 {
     UmbralDuckProcessor processor;
     constexpr int blockSize = 256;
@@ -342,21 +343,31 @@ TEST_CASE ("Processor transport: Bypass keeps output bit-identical, Locked and F
     processor.setPlayHead (&playHead);
     juce::MidiBuffer midi;
 
-    SECTION ("Stopped host: output is bit-identical")
+    SECTION ("Stopped host with SYNC enabled modulates audio in Free-Running mode")
     {
         playHead.playing = false;
         playHead.ppq     = 0.5;
-        auto buf = makeBuffer();
-        processor.processBlock (buf, midi);
-        CHECK (isIdentical (buf));
+        bool ducked      = false;
+        for (int n = 0; n < 100 && ! ducked; ++n)
+        {
+            auto buf = makeBuffer();
+            processor.processBlock (buf, midi);
+            ducked = ! isIdentical (buf);
+        }
+        CHECK (ducked);
     }
 
-    SECTION ("No position available: output is bit-identical")
+    SECTION ("No position available modulates audio in Free-Running mode")
     {
         playHead.available = false;
-        auto buf = makeBuffer();
-        processor.processBlock (buf, midi);
-        CHECK (isIdentical (buf));
+        bool ducked        = false;
+        for (int n = 0; n < 100 && ! ducked; ++n)
+        {
+            auto buf = makeBuffer();
+            processor.processBlock (buf, midi);
+            ducked = ! isIdentical (buf);
+        }
+        CHECK (ducked);
     }
 
     SECTION ("Playing at the curve valley attenuates")
@@ -397,6 +408,89 @@ TEST_CASE ("Processor transport: Bypass keeps output bit-identical, Locked and F
         processor.processBlock (big, midi);
         for (int i = 0; i < 1000; ++i)
             REQUIRE (std::isfinite (big.getSample (0, i)));
+    }
+
+    processor.setPlayHead (nullptr);
+}
+
+TEST_CASE ("Processor MIDI trigger: NoteOn resets phase at exact sample offset with anti-pop ramp", "[midi][transport][processor]")
+{
+    UmbralDuckProcessor processor;
+    REQUIRE (processor.acceptsMidi());
+
+    constexpr int blockSize = 256;
+    processor.prepareToPlay (kFs, blockSize);
+
+    // Selecciona 01 Classic (C(0)=0, C(1)=1) con mix 100%
+    setParam (processor, "curve", 0.0f);
+    setParam (processor, "mix", 1.0f);
+    setParam (processor, "sync", 0.0f);
+
+    FakePlayHead playHead;
+    playHead.playing = false;
+    processor.setPlayHead (&playHead);
+
+    auto makeUnityBuffer = [] {
+        juce::AudioBuffer<float> b (2, blockSize);
+        for (int i = 0; i < blockSize; ++i)
+        {
+            b.setSample (0, i, 1.0f);
+            b.setSample (1, i, 1.0f);
+        }
+        return b;
+    };
+
+    // Avanza hasta la parte alta de 01 Classic (cerca de phi ~ 0.85, donde G ~ 0.98)
+    juce::MidiBuffer emptyMidi;
+    for (int b = 0; b < 80; ++b)
+    {
+        auto buf = makeUnityBuffer();
+        processor.processBlock (buf, emptyMidi);
+    }
+
+    const float phaseBeforeNote = processor.getUiStateSnapshot().currentPhase;
+    REQUIRE (phaseBeforeNote > 0.75f);
+
+    SECTION ("Mid-block NoteOn resets phase at exact sample offset and ramps smoothly without click")
+    {
+        constexpr int triggerSample = 100;
+        juce::MidiBuffer midi;
+        midi.addEvent (juce::MidiMessage::noteOn (1, 60, static_cast<juce::uint8> (100)), triggerSample);
+
+        auto buf = makeUnityBuffer();
+        processor.processBlock (buf, midi);
+
+        // Antes de triggerSample la ganancia sigue cerca de 1.0
+        CHECK (buf.getSample (0, triggerSample - 1) > 0.90f);
+
+        // Tras triggerSample (quedan 156 muestras > 96 muestras de rampa de 2.0 ms a 48 kHz),
+        // la ganancia desciende hasta 0.0 (valle inicial de 01 Classic en [0, 0.12])
+        CHECK (buf.getSample (0, blockSize - 1) < 0.01f);
+
+        // Verifica que la fase final del bloque corresponde exactamente a (blockSize - triggerSample) muestras desde 0.0
+        const double expectedEndPhase = static_cast<double> (blockSize - triggerSample) * (120.0 / (60.0 * kFs));
+        CHECK_THAT (static_cast<double> (processor.getUiStateSnapshot().currentPhase),
+                    WithinAbs (expectedEndPhase, 1.0e-5));
+
+        // Continuidad C1 anti-pop: ningun salto muestra a muestra supera el umbral seguro (1.5 / 96 ~ 0.0156)
+        float maxDelta = 0.0f;
+        for (int i = 1; i < blockSize; ++i)
+            maxDelta = std::max (maxDelta, std::abs (buf.getSample (0, i) - buf.getSample (0, i - 1)));
+
+        CHECK (maxDelta < 0.025f);
+    }
+
+    SECTION ("NoteOff and CC events do not reset phase")
+    {
+        juce::MidiBuffer midi;
+        midi.addEvent (juce::MidiMessage::noteOff (1, 60, static_cast<juce::uint8> (64)), 64);
+        midi.addEvent (juce::MidiMessage::controllerEvent (1, 1, 127), 120);
+
+        auto buf = makeUnityBuffer();
+        processor.processBlock (buf, midi);
+
+        // La fase continua avanzando por encima de phaseBeforeNote sin reiniciarse a 0
+        CHECK (processor.getUiStateSnapshot().currentPhase > phaseBeforeNote);
     }
 
     processor.setPlayHead (nullptr);

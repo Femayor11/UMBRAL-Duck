@@ -67,6 +67,7 @@ TEST_CASE ("Bus layouts support mono and stereo symmetrically", "[buses]")
 TEST_CASE ("Stereo pass-through produces bit-identical output across block sizes and sample rates", "[passthrough]")
 {
     UmbralDuckProcessor processor;
+    processor.getAPVTS().getParameter ("mix")->setValueNotifyingHost (0.0f);
 
     const double sampleRates[] = { 44100.0, 48000.0, 88200.0, 96000.0, 192000.0 };
     const int blockSizes[]     = { 32, 64, 128, 256, 512, 1024 };
@@ -112,6 +113,7 @@ TEST_CASE ("Stereo pass-through produces bit-identical output across block sizes
 TEST_CASE ("Mono pass-through produces bit-identical output", "[passthrough]")
 {
     UmbralDuckProcessor processor;
+    processor.getAPVTS().getParameter ("mix")->setValueNotifyingHost (0.0f);
 
     juce::AudioProcessor::BusesLayout monoLayout;
     monoLayout.inputBuses.add (juce::AudioChannelSet::mono());

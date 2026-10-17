@@ -69,8 +69,9 @@ namespace umbral::dsp
         const double anchor   = resolveAnchor (ctx, rate);
         const double length   = cycleLengthQuarterNotes (rate, ctx.timeSig);
         const double deltaPhi = computeDeltaPhi (ctx.bpm, ctx.sampleRate, rate, ctx.timeSig);
+        const double offset   = sanitizePpq (ctx.phaseOffset);
 
-        const double rawPhase = (ppq0 - anchor) / length + static_cast<double> (sampleIndex) * deltaPhi;
+        const double rawPhase = (ppq0 - anchor) / length + offset + static_cast<double> (sampleIndex) * deltaPhi;
         return toUnitPhaseFloat (rawPhase);
     }
 
@@ -82,7 +83,8 @@ namespace umbral::dsp
         const double anchor    = resolveAnchor (ctx, rate);
         const double length    = cycleLengthQuarterNotes (rate, ctx.timeSig);
         const double deltaPhi  = computeDeltaPhi (ctx.bpm, ctx.sampleRate, rate, ctx.timeSig);
-        const double basePhase = (ppq0 - anchor) / length;
+        const double offset    = sanitizePpq (ctx.phaseOffset);
+        const double basePhase = (ppq0 - anchor) / length + offset;
 
         const std::size_t numSamples = outPhases.size();
         for (std::size_t n = 0; n < numSamples; ++n)

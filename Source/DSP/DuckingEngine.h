@@ -36,6 +36,9 @@ namespace umbral::dsp
         // Reinicia el estado del suavizador para que la primera muestra del siguiente bloque fije el nivel inicial.
         void reset() noexcept;
 
+        // Inicia una micro-rampa cubica Hermite (2.0 ms) anti-pop ante reinicios de fase (ej. MIDI NoteOn).
+        void triggerAntiPopRamp() noexcept;
+
         // Calcula la ganancia efectiva instantanea (sin suavizado):
         // G(phi) = (1 - M) + M * C_slope(frac(phi - S))
         // Salida garantizada finita en [0, 1].
@@ -57,8 +60,10 @@ namespace umbral::dsp
         [[nodiscard]] GainSmoother& getGainSmoother() noexcept { return gainSmoother; }
 
     private:
+        [[nodiscard]] float evaluateAndSmoothSample (const DuckingParameters& params, float phi) noexcept;
         void processBypassRamp (float* const* channels, int numChannels, int numSamples) noexcept;
 
         GainSmoother gainSmoother;
+        float lastShiftedPhase = -1.0f;
     };
 }

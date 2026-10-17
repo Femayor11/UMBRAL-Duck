@@ -165,6 +165,42 @@ TEST_CASE ("GainResponse degenerate areas produce empty paths", "[ui][gainrespon
     CHECK (fill.isEmpty());
 }
 
+TEST_CASE ("GainResponseGeometry: no vertical drop at phi 1.0 on curves ending at unity", "[ui][gainresponse]")
+{
+    // Curvas que terminan en C(1.0) = 1.0 (0 dB) pero inician en C(0.0) < 1.0:
+    // 01 Classic (0), 02 Sharp (1), 04 Tight (3), 06 Rhythmic (5), 07 Deep (6), 08 Light (7), 09 Pump (8), 11 Step (10)
+    const int unityEndCurves[] = { 0, 1, 3, 5, 6, 7, 8, 10 };
+    const float topY           = geo::dbToY (kArea, 0.0f);
+
+    for (const int curveIndex : unityEndCurves)
+    {
+        const geo::CurveParams params { curveIndex, 1.0f, 0.0f, 0.5f };
+
+        // En phi = 1.0f con shift = 0.0f la ganancia en dB debe ser exactamente 0.0 dB (sin envolver a phi = 0.0f)
+        CHECK_THAT (geo::effectiveGainDb (params, 1.0f), WithinAbs (0.0f, 1.0e-4f));
+
+        juce::Path curve;
+        juce::Path fill;
+        geo::buildPaths (kArea, params, curve, fill);
+
+        float prevY = topY;
+        float lastY = topY;
+        int idx     = 0;
+        for (juce::Path::Iterator it (curve); it.next();)
+        {
+            if (idx == geo::curvePointCount - 2)
+                prevY = it.y1;
+            if (idx == geo::curvePointCount - 1)
+                lastY = it.y1;
+            ++idx;
+        }
+
+        // El ultimo punto (phi = 1.0) termina en 0 dB (topY) sin caida vertical respecto al penultimo punto
+        CHECK_THAT (lastY, WithinAbs (topY, 1.0e-3f));
+        CHECK (std::abs (lastY - prevY) < 2.0f);
+    }
+}
+
 TEST_CASE ("GainResponse text formatting", "[ui][gainresponse]")
 {
     char buffer[32] {};

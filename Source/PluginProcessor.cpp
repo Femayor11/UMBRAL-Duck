@@ -56,11 +56,12 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
-    midiMessages.clear();
-
     const auto numSamples = buffer.getNumSamples();
     if (numSamples == 0 || totalNumInputChannels == 0)
+    {
+        midiMessages.clear();
         return;
+    }
 
     umbral::dsp::DuckingParameters params;
     params.curveIndex = static_cast<int> (curveParam->load (std::memory_order_relaxed));
@@ -111,7 +112,10 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     // Procesa en tramos del tamano preasignado en prepareToPlay (nunca redimensiona aqui).
     const auto capacity = static_cast<int> (phaseBuffer.size());
     if (capacity <= 0)
+    {
+        midiMessages.clear();
         return;
+    }
 
     const int numChannels = juce::jmin (totalNumInputChannels, 2);
 
@@ -122,26 +126,51 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     float* chunkPointers[2] = { nullptr, nullptr };
     umbral::dsp::TransportResult lastResult;
 
-    for (int start = 0; start < numSamples; start += capacity)
+    auto midiIt        = midiMessages.cbegin();
+    const auto midiEnd = midiMessages.cend();
+
+    int pos = 0;
+    while (pos < numSamples)
     {
-        const int chunk = juce::jmin (capacity, numSamples - start);
+        bool triggeredAtPos = false;
+        while (midiIt != midiEnd && (*midiIt).samplePosition <= pos)
+        {
+            if ((*midiIt).getMessage().isNoteOn())
+                triggeredAtPos = true;
+            ++midiIt;
+        }
+
+        if (triggeredAtPos)
+        {
+            transportClock.triggerNoteOn (sync, host, paramBpm, rate, pos);
+            duckingEngine.triggerAntiPopRamp();
+        }
+
+        while (midiIt != midiEnd && ! (*midiIt).getMessage().isNoteOn())
+            ++midiIt;
+
+        const int limitSample = (midiIt != midiEnd)
+                                    ? juce::jlimit (pos + 1, numSamples, (*midiIt).samplePosition)
+                                    : numSamples;
+        const int chunk = juce::jmin (capacity, limitSample - pos);
         const std::span<float> phases (phaseBuffer.data(), static_cast<size_t> (chunk));
 
-        lastResult = transportClock.process (sync, host, paramBpm, rate, phases, start);
-
-        // SYNC on sin reproduccion o sin datos: ganancia exactamente 1.0 (mix = 0 -> G = 1),
-        // salida bit-identica en Stereo y se conserva el downmix en modo Mono.
+        lastResult = transportClock.process (sync, host, paramBpm, rate, phases, pos);
         params.mix = (lastResult.mode == umbral::dsp::TransportMode::Bypass) ? 0.0f : baseMix;
 
         for (int ch = 0; ch < numChannels; ++ch)
-            chunkPointers[ch] = channelPointers[ch] + start;
+            chunkPointers[ch] = channelPointers[ch] + pos;
 
         duckingEngine.process (chunkPointers,
                                numChannels,
                                chunk,
                                params,
                                std::span<const float> (phaseBuffer.data(), static_cast<size_t> (chunk)));
+
+        pos += chunk;
     }
+
+    midiMessages.clear();
 
     // T-08: Medicion Peak de salida (OUT) y publicacion atomica lock-free para la UI.
     const float outLevelDb        = levelMeterSource.processOutput (buffer.getArrayOfReadPointers(), numChannels, numSamples);

@@ -57,12 +57,18 @@ namespace umbral::dsp
                                  RateDivision rate, std::span<float> outPhases,
                                  int sampleOffset = 0) noexcept;
 
+        // Reinicia inmediatamente la fase a 0.0f en la muestra sampleOffset al recibir un evento MIDI NoteOn.
+        void triggerNoteOn (bool sync, const HostTransport& host, double paramBpm,
+                            RateDivision rate, int sampleOffset = 0) noexcept;
+
         [[nodiscard]] float getLastPhase() const noexcept { return lastPhase; }
 
     private:
-        double sampleRate = 44100.0;
-        double freePhase  = 0.0;  // acumulador libre en [0, 1)
-        float lastPhase   = 0.0f; // ultima fase valida emitida
+        double sampleRate        = 44100.0;
+        double freePhase         = 0.0;  // acumulador libre en [0, 1)
+        double lockedPhaseOffset = 0.0;  // offset de fase aplicado en modo Locked tras triggerNoteOn
+        bool wasLocked           = false;
+        float lastPhase          = 0.0f; // ultima fase valida emitida
         BarBeatTick lastTick {};
     };
 }

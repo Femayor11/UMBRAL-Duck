@@ -70,7 +70,8 @@ namespace umbral::ui::geometry
         return maxDb + t * (minDb - maxDb);
     }
 
-    // G(phi) = (1 - M) + M * C_slope(frac(phi - S)), convertido con gainToDb (DSP_SPEC).
+    // G(phi) = (1 - M) + M * C_slope(applyShift(phi, S)), convertido con gainToDb (DSP_SPEC).
+    // En phi = 1.0f con shift = 0.0f preserva el valor final del ciclo sin envolver a 0.0f.
     [[nodiscard]] inline float effectiveGainDb (const CurveParams& p, float phi) noexcept
     {
         return math::gainToDb (dsp::DuckingEngine::computeGain (p.curveIndex, phi, p.shift, p.slope, p.mix));

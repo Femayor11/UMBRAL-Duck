@@ -28,17 +28,34 @@ namespace umbral::dsp
             const double a = 1.0 - std::exp (-kLn100 / settlingSamples);
             alpha = math::clamp01 (static_cast<float> (a));
         }
+
+        const int computedRampSamples = static_cast<int> (std::lround (fs * (static_cast<double> (kAntiPopRampMs) * 1.0e-3)));
+        rampTotalSamples     = std::max (computedRampSamples, 1);
+        rampSamplesRemaining = 0;
+        rampStartValue       = currentValue;
     }
 
     void GainSmoother::reset (float initialValue) noexcept
     {
-        currentValue = math::clamp01 (math::finiteOr (initialValue, 1.0f));
-        primed       = true;
+        currentValue         = math::clamp01 (math::finiteOr (initialValue, 1.0f));
+        rampStartValue       = currentValue;
+        rampSamplesRemaining = 0;
+        primed               = true;
     }
 
     void GainSmoother::resetToNextSample() noexcept
     {
-        primed = false;
+        rampSamplesRemaining = 0;
+        primed               = false;
+    }
+
+    void GainSmoother::triggerAntiPopRamp() noexcept
+    {
+        if (! primed || rampTotalSamples <= 1)
+            return;
+
+        rampStartValue       = currentValue;
+        rampSamplesRemaining = rampTotalSamples;
     }
 
     float GainSmoother::processSample (float targetGain) noexcept
@@ -47,8 +64,21 @@ namespace umbral::dsp
 
         if (! primed)
         {
-            currentValue = target;
-            primed       = true;
+            currentValue         = target;
+            rampStartValue       = target;
+            rampSamplesRemaining = 0;
+            primed               = true;
+            return currentValue;
+        }
+
+        if (rampSamplesRemaining > 0)
+        {
+            const int step = rampTotalSamples - rampSamplesRemaining + 1;
+            --rampSamplesRemaining;
+
+            const float t = static_cast<float> (step) / static_cast<float> (rampTotalSamples);
+            const float s = math::smoothstep (t);
+            currentValue  = math::clamp01 (math::lerp (rampStartValue, target, s));
             return currentValue;
         }
 

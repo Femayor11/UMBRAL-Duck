@@ -53,9 +53,14 @@ namespace umbral::math
     }
 
     // phi_shifted = frac(phi - S), con saneamiento de NaN/Inf.
+    // Preserva phi = 1.0f cuando el shift efectivo es 0.0f para evaluar el nodo final exacto sin salto vertical.
     [[nodiscard]] inline float applyShift (float phi, float shift) noexcept
     {
-        return frac (finiteOr (phi, fallbackPhase) - finiteOr (shift, fallbackShift));
+        const float safePhi   = finiteOr (phi, fallbackPhase);
+        const float safeShift = frac (finiteOr (shift, fallbackShift));
+        if (safePhi == 1.0f && safeShift == 0.0f)
+            return 1.0f;
+        return frac (safePhi - safeShift);
     }
 
     // p = 2^((K - 0.5) * 2), con K saneado y acotado a [0, 1].
