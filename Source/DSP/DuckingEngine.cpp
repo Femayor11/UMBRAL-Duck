@@ -31,16 +31,16 @@ namespace umbral::dsp
 
     float DuckingEngine::evaluateAndSmoothSample (const DuckingParameters& params, float phi) noexcept
     {
-        const float shiftedPhi = math::applyShift (phi, params.shift);
-        const float rawGain    = computeGain (params.curveIndex, phi, params.shift, params.slope, params.mix);
+        const float safePhi = math::frac (math::finiteOr (phi, math::fallbackPhase));
+        const float rawGain = computeGain (params.curveIndex, phi, params.shift, params.slope, params.mix);
 
-        if (lastShiftedPhase >= 0.0f && shiftedPhi < lastShiftedPhase - 0.5f)
+        if (lastShiftedPhase >= 0.0f && safePhi < lastShiftedPhase - 0.5f)
         {
             if (std::abs (rawGain - gainSmoother.getCurrentValue()) > 1.0e-3f)
                 gainSmoother.triggerAntiPopRamp();
         }
 
-        lastShiftedPhase = shiftedPhi;
+        lastShiftedPhase = safePhi;
         return gainSmoother.processSample (rawGain);
     }
 

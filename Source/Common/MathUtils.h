@@ -52,15 +52,15 @@ namespace umbral::math
         return r >= 1.0f ? 0.0f : r;
     }
 
-    // phi_shifted = frac(phi - S), con saneamiento de NaN/Inf.
-    // Preserva phi = 1.0f cuando el shift efectivo es 0.0f para evaluar el nodo final exacto sin salto vertical.
+    // phi_shifted = max(0.0f, phi - S), sin wrap circular envolvente.
+    // Durante [0, S], phi_shifted permanece en 0.0f (nivel base inicial de la curva),
+    // comenzando la evolucion de la curva en phi >= S.
     [[nodiscard]] inline float applyShift (float phi, float shift) noexcept
     {
-        const float safePhi   = finiteOr (phi, fallbackPhase);
-        const float safeShift = frac (finiteOr (shift, fallbackShift));
-        if (safePhi == 1.0f && safeShift == 0.0f)
-            return 1.0f;
-        return frac (safePhi - safeShift);
+        const float rawPhi    = finiteOr (phi, fallbackPhase);
+        const float safePhi   = (rawPhi == 1.0f) ? 1.0f : frac (rawPhi);
+        const float safeShift = clamp01 (finiteOr (shift, fallbackShift));
+        return clamp01 (safePhi - safeShift);
     }
 
     // p = 2^((K - 0.5) * 2), con K saneado y acotado a [0, 1].

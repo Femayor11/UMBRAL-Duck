@@ -80,7 +80,6 @@ namespace umbral::ui
         juce::Font headerFont;
         juce::Font readoutFont;
         juce::Font axisFont;
-        juce::Font pillFont;
         juce::String headerLabel;
         std::array<juce::String, 5> dbLabels;
         std::array<juce::String, 5> timeLabels;

@@ -26,7 +26,6 @@ namespace umbral::ui
           headerFont (UmbralLookAndFeel::getSectionHeaderFont()),
           readoutFont (UmbralLookAndFeel::getGainReadoutFont()),
           axisFont (UmbralLookAndFeel::getAxisScaleFont()),
-          pillFont (UmbralLookAndFeel::getBarPositionFont()),
           headerLabel ("GAIN RESPONSE")
     {
         setOpaque (false);
@@ -92,9 +91,6 @@ namespace umbral::ui
 
         auto inner = panelBounds.reduced (static_cast<float> (tokens::panelPadding));
         headerArea = inner.removeFromTop (static_cast<float> (tokens::graphHeaderHeight));
-
-        if (barPillVisible)
-            inner.removeFromTop (tokens::graphPillHeight);
 
         inner.removeFromLeft (static_cast<float> (tokens::graphAxisLabelWidth + tokens::graphAxisGap));
         inner.removeFromBottom (static_cast<float> (tokens::graphAxisLabelHeight + tokens::graphAxisGap));
@@ -221,30 +217,5 @@ namespace umbral::ui
         g.setColour (tokens::signal);
         g.strokePath (curvePath, juce::PathStrokeType (tokens::curveStroke, juce::PathStrokeType::curved,
                                                        juce::PathStrokeType::rounded));
-
-        // Playhead: linea vertical de 1 px en Bone
-        const float playheadX = geometry::phaseToX (plotArea, playheadPhase);
-        g.setColour (tokens::bone);
-        g.fillRect (playheadX - tokens::playheadWidth * 0.5f, plotArea.getY(),
-                    tokens::playheadWidth, plotArea.getHeight());
-
-        // Pastilla "1.2.3" anclada sobre el playhead
-        if (barPillVisible)
-        {
-            const float pillX = std::clamp (playheadX - tokens::graphPillWidth * 0.5f, plotArea.getX(),
-                                            std::max (plotArea.getX(), plotArea.getRight() - tokens::graphPillWidth));
-            const juce::Rectangle<float> pill (pillX, plotArea.getY() - tokens::graphPillHeight,
-                                               tokens::graphPillWidth, tokens::graphPillHeight);
-
-            g.setColour (tokens::raised);
-            g.fillRoundedRectangle (pill, tokens::radius);
-            g.setColour (tokens::hairline);
-            g.drawRoundedRectangle (pill.reduced (tokens::borderWidth * 0.5f), tokens::radius,
-                                    tokens::borderWidth);
-
-            g.setFont (pillFont);
-            g.setColour (tokens::bone);
-            g.drawText (barBeatText, pill, juce::Justification::centred, false);
-        }
     }
 }

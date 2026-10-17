@@ -42,14 +42,13 @@ namespace umbral::ui
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChannelsSelector)
     };
 
-    // Panel de controles CURVE, MIX, SHIFT y SLOPE (T-12, docs/DESIGN.md §5 y §6).
-    // En vista Full (193 x 368 px) se ubica a la izquierda mostrando los 3 niveles (CURVE, MIX, SHIFT/SLOPE).
-    // En vista Compact (160 x 279 px) se ubica a la derecha mostrando solo CURVE y MIX.
+    // Panel de controles MIX, SHIFT y SLOPE (T-12, docs/DESIGN.md §5 y §6).
+    // En vista Full (193 x 368 px) se ubica a la izquierda mostrando MIX arriba y SHIFT/SLOPE debajo.
+    // En vista Compact (160 x 279 px) se ubica a la derecha mostrando MIX.
     class ControlStrip final : public juce::Component
     {
     public:
-        using SliderAttachment   = juce::AudioProcessorValueTreeState::SliderAttachment;
-        using ComboBoxAttachment = juce::AudioProcessorValueTreeState::ComboBoxAttachment;
+        using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
 
         explicit ControlStrip (juce::AudioProcessorValueTreeState& apvts);
         ~ControlStrip() override;
@@ -62,8 +61,6 @@ namespace umbral::ui
 
         [[nodiscard]] static juce::String formatPercentage (double value);
 
-        [[nodiscard]] juce::ComboBox& getCurveCombo() noexcept { return curveCombo; }
-        [[nodiscard]] const juce::ComboBox& getCurveCombo() const noexcept { return curveCombo; }
         [[nodiscard]] juce::Slider& getMixSlider() noexcept { return mixSlider; }
         [[nodiscard]] const juce::Slider& getMixSlider() const noexcept { return mixSlider; }
         [[nodiscard]] juce::Slider& getShiftSlider() noexcept { return shiftSlider; }
@@ -86,30 +83,26 @@ namespace umbral::ui
         juce::Font secondaryReadoutFont;
 
         juce::Rectangle<float> panelBounds;
-        juce::Rectangle<float> curveHeaderArea;
         juce::Rectangle<float> mixHeaderArea;
         juce::Rectangle<float> mixReadoutArea;
         juce::Rectangle<float> shiftHeaderArea;
         juce::Rectangle<float> shiftReadoutArea;
         juce::Rectangle<float> slopeHeaderArea;
         juce::Rectangle<float> slopeReadoutArea;
-        float curveDividerY = 0.0f;
-        float mixDividerY   = 0.0f;
+        float mixDividerY = 0.0f;
 
         juce::String mixReadoutText;
         juce::String shiftReadoutText;
         juce::String slopeReadoutText;
 
-        juce::ComboBox curveCombo;
-        juce::Slider   mixSlider;
-        juce::Slider   shiftSlider;
-        juce::Slider   slopeSlider;
+        juce::Slider mixSlider;
+        juce::Slider shiftSlider;
+        juce::Slider slopeSlider;
 
         // Declarados despues de los controles UI para garantizar orden de destruccion seguro sin leaks.
-        std::unique_ptr<ComboBoxAttachment> curveAttachment;
-        std::unique_ptr<SliderAttachment>   mixAttachment;
-        std::unique_ptr<SliderAttachment>   shiftAttachment;
-        std::unique_ptr<SliderAttachment>   slopeAttachment;
+        std::unique_ptr<SliderAttachment> mixAttachment;
+        std::unique_ptr<SliderAttachment> shiftAttachment;
+        std::unique_ptr<SliderAttachment> slopeAttachment;
 
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ControlStrip)
     };

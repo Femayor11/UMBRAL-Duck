@@ -292,7 +292,7 @@ TEST_CASE ("GainResponseView renders offscreen without hanging", "[ui][gainrespo
     umbral::UiStateSnapshot snapshot;
     umbral::ui::GainResponseView view (snapshot, {});
 
-    SECTION ("full size draws Signal pixels for curve and readout")
+    SECTION ("full size draws Signal pixels for curve and readout without playhead")
     {
         view.setBounds (0, 0, 534, 368);
         snapshot.publish (0.5f, -14.2f, { 1, 2, 3 }, -20.0f, -22.0f);
@@ -302,8 +302,9 @@ TEST_CASE ("GainResponseView renders offscreen without hanging", "[ui][gainrespo
         render (view, image);
 
         CHECK (countPixels (image, umbral::tokens::signal) > 0);
-        CHECK (countPixels (image, umbral::tokens::bone) > 0);   // playhead + pastilla
+        CHECK (countPixels (image, umbral::tokens::hairline) > 0);
         CHECK (countPixels (image, umbral::tokens::panel) > 0);
+        CHECK (countPixels (image, umbral::tokens::bone) == 0);
     }
 
     SECTION ("extreme snapshot states do not break painting")

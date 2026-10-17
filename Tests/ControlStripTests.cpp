@@ -37,22 +37,16 @@ TEST_CASE ("ControlStrip default initialization matches APVTS parameter defaults
     auto& strip    = editor->getControlStrip();
     auto& channels = editor->getChannelsSelector();
 
-    SECTION ("CURVE dropdown has 16 curves and selects 04 Classic by default")
+    SECTION ("MIX knob defaults to 70 percent in upper section with 80 px diameter and 270 degree sweep")
     {
-        auto& combo = strip.getCurveCombo();
-        CHECK (combo.getNumItems() == 16);
-        CHECK (combo.getSelectedItemIndex() == 3);
-        CHECK (combo.getText() == "04 Classic");
-        CHECK (combo.getHeight() == t::controlHeightLarge);
-    }
+        auto& mix   = strip.getMixSlider();
+        auto& shift = strip.getShiftSlider();
 
-    SECTION ("MIX knob defaults to 70 percent with 80 px diameter and 270 degree sweep")
-    {
-        auto& mix = strip.getMixSlider();
         CHECK_THAT (static_cast<float> (mix.getValue()), WithinAbs (70.0f, 1.0e-3f));
         CHECK (strip.getMixReadoutText() == "70%");
         CHECK (mix.getWidth() == t::knobMixDiameter);
         CHECK (mix.getHeight() == t::knobMixDiameter);
+        CHECK (mix.getY() < shift.getY());
 
         const auto rotaryParams = mix.getRotaryParameters();
         const float sweepRad = rotaryParams.endAngleRadians - rotaryParams.startAngleRadians;
@@ -102,13 +96,6 @@ TEST_CASE ("ControlStrip UI changes propagate to APVTS parameters", "[ui][contro
 
     auto& strip    = editor->getControlStrip();
     auto& channels = editor->getChannelsSelector();
-
-    SECTION ("Selecting a curve in ComboBox updates APVTS curve parameter")
-    {
-        strip.getCurveCombo().setSelectedItemIndex (8, juce::sendNotificationSync); // 09 Pump
-        const float rawCurve = apvts.getRawParameterValue (ids::curve)->load();
-        CHECK (juce::roundToInt (rawCurve) == 8);
-    }
 
     SECTION ("Moving MIX SHIFT and SLOPE sliders updates APVTS and readouts")
     {
@@ -165,13 +152,11 @@ TEST_CASE ("ControlStrip responds to programmatic APVTS parameter changes", "[ui
     auto& strip    = editor->getControlStrip();
     auto& channels = editor->getChannelsSelector();
 
-    setNormalizedParam (apvts, ids::curve,    10.0f); // 11 Step
     setNormalizedParam (apvts, ids::mix,      85.0f);
     setNormalizedParam (apvts, ids::shift,    25.0f);
     setNormalizedParam (apvts, ids::slope,    75.0f);
     setNormalizedParam (apvts, ids::channels, 1.0f);  // Mono
 
-    CHECK (strip.getCurveCombo().getSelectedItemIndex() == 10);
     CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()),   WithinAbs (85.0f, 0.2f));
     CHECK_THAT (static_cast<float> (strip.getShiftSlider().getValue()), WithinAbs (25.0f, 0.2f));
     CHECK_THAT (static_cast<float> (strip.getSlopeSlider().getValue()), WithinAbs (75.0f, 0.2f));
@@ -213,7 +198,6 @@ TEST_CASE ("ControlStrip Full and Compact layout and conditional visibility", "[
                                                           t::fullLeftPanelWidth,
                                                           t::fullPanelRowHeight));
 
-        CHECK (strip.getCurveCombo().isVisible());
         CHECK (strip.getMixSlider().isVisible());
         CHECK (strip.getShiftSlider().isVisible());
         CHECK (strip.getSlopeSlider().isVisible());
@@ -233,7 +217,6 @@ TEST_CASE ("ControlStrip Full and Compact layout and conditional visibility", "[
                                                           t::compactRightPanelWidth,
                                                           t::compactPanelRowHeight));
 
-        CHECK (strip.getCurveCombo().isVisible());
         CHECK (strip.getMixSlider().isVisible());
         CHECK_FALSE (strip.getShiftSlider().isVisible());
         CHECK_FALSE (strip.getSlopeSlider().isVisible());
@@ -266,7 +249,6 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
         auto* firstEditor = dynamic_cast<UmbralDuckEditor*> (firstEditorBase.get());
         REQUIRE (firstEditor != nullptr);
 
-        firstEditor->getControlStrip().getCurveCombo().setSelectedItemIndex (4, juce::sendNotificationSync);
         firstEditor->getControlStrip().getMixSlider().setValue (42.0, juce::sendNotificationSync);
         firstEditor->getControlStrip().getShiftSlider().setValue (15.0, juce::sendNotificationSync);
         firstEditor->getControlStrip().getSlopeSlider().setValue (80.0, juce::sendNotificationSync);
@@ -298,7 +280,6 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
         auto& channels = secondEditor->getChannelsSelector();
 
         CHECK (secondEditor->isCompactView());
-        CHECK (strip.getCurveCombo().getSelectedItemIndex() == 4);
         CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()),   WithinAbs (42.0f, 0.2f));
         CHECK_THAT (static_cast<float> (strip.getShiftSlider().getValue()), WithinAbs (15.0f, 0.2f));
         CHECK_THAT (static_cast<float> (strip.getSlopeSlider().getValue()), WithinAbs (80.0f, 0.2f));

@@ -100,18 +100,6 @@ namespace umbral::ui
     {
         setOpaque (false);
 
-        if (auto* choiceParam = dynamic_cast<juce::AudioParameterChoice*> (apvts.getParameter (params::rawIDs::curve)))
-        {
-            const auto& choices = choiceParam->choices;
-            for (int i = 0; i < choices.size(); ++i)
-                curveCombo.addItem (choices[i], i + 1);
-        }
-        else
-        {
-            for (int i = 0; i < params::curves::count; ++i)
-                curveCombo.addItem (params::curves::choices[i], i + 1);
-        }
-
         configureRotaryKnob (mixSlider);
         configureRotaryKnob (shiftSlider);
         configureRotaryKnob (slopeSlider);
@@ -120,15 +108,13 @@ namespace umbral::ui
         shiftSlider.onValueChange = [this]() { updateReadouts(); };
         slopeSlider.onValueChange = [this]() { updateReadouts(); };
 
-        addAndMakeVisible (curveCombo);
         addAndMakeVisible (mixSlider);
         addAndMakeVisible (shiftSlider);
         addAndMakeVisible (slopeSlider);
 
-        curveAttachment = std::make_unique<ComboBoxAttachment> (apvts, params::rawIDs::curve, curveCombo);
-        mixAttachment   = std::make_unique<SliderAttachment>   (apvts, params::rawIDs::mix,   mixSlider);
-        shiftAttachment = std::make_unique<SliderAttachment>   (apvts, params::rawIDs::shift, shiftSlider);
-        slopeAttachment = std::make_unique<SliderAttachment>   (apvts, params::rawIDs::slope, slopeSlider);
+        mixAttachment   = std::make_unique<SliderAttachment> (apvts, params::rawIDs::mix,   mixSlider);
+        shiftAttachment = std::make_unique<SliderAttachment> (apvts, params::rawIDs::shift, shiftSlider);
+        slopeAttachment = std::make_unique<SliderAttachment> (apvts, params::rawIDs::slope, slopeSlider);
 
         updateReadouts();
         resized();
@@ -139,7 +125,6 @@ namespace umbral::ui
         slopeAttachment.reset();
         shiftAttachment.reset();
         mixAttachment.reset();
-        curveAttachment.reset();
     }
 
     void ControlStrip::configureRotaryKnob (juce::Slider& slider)
@@ -188,28 +173,16 @@ namespace umbral::ui
         if (panelBounds.isEmpty())
             return;
 
-        const float pad = static_cast<float> (tokens::panelPadding);
+        const float pad     = static_cast<float> (tokens::panelPadding);
         const float headerH = static_cast<float> (tokens::knobHeaderHeight);
 
-        // 1. Nivel superior: CURVE (Full y Compact)
-        const float curveSectionH = std::min (static_cast<float> (tokens::curveSectionHeight), panelBounds.getHeight());
-        auto curveSection = juce::Rectangle<float> (0.0f, 0.0f, panelBounds.getWidth(), curveSectionH).reduced (pad);
-        curveHeaderArea = curveSection.removeFromTop (headerH);
-
-        const float comboH = static_cast<float> (tokens::controlHeightLarge);
-        const float comboY = curveSection.getY() + std::max (0.0f, (curveSection.getHeight() - comboH) * 0.5f);
-        curveCombo.setBounds (juce::Rectangle<float> (curveSection.getX(), comboY, curveSection.getWidth(), comboH).toNearestInt());
-
-        curveDividerY = curveSectionH;
-
-        // 2. Nivel central: MIX (en Compact ocupa todo el resto del panel; en Full tiene altura mixSectionHeightFull)
-        const float mixTop = curveDividerY + tokens::borderWidth;
+        // 1. Nivel superior: MIX (ocupa el espacio superior liberado en Full y todo el panel en Compact)
+        const float fullMixH = static_cast<float> (tokens::curveSectionHeight + tokens::mixSectionHeightFull);
         const float mixSectionH = compactMode
-                                      ? std::max (0.0f, panelBounds.getHeight() - mixTop)
-                                      : std::min (static_cast<float> (tokens::mixSectionHeightFull),
-                                                  std::max (0.0f, panelBounds.getHeight() - mixTop));
+                                      ? panelBounds.getHeight()
+                                      : std::min (fullMixH, panelBounds.getHeight());
 
-        auto mixSection = juce::Rectangle<float> (0.0f, mixTop, panelBounds.getWidth(), mixSectionH).reduced (pad);
+        auto mixSection = juce::Rectangle<float> (0.0f, 0.0f, panelBounds.getWidth(), mixSectionH).reduced (pad);
         mixHeaderArea  = mixSection.removeFromTop (headerH);
         mixReadoutArea = mixSection.removeFromBottom (static_cast<float> (tokens::mixReadoutHeight));
 
@@ -219,10 +192,10 @@ namespace umbral::ui
         const auto mixKnobRect = juce::Rectangle<float> (mixKnobSize, mixKnobSize).withCentre (mixSection.getCentre());
         mixSlider.setBounds (mixKnobRect.toNearestInt());
 
-        // 3. Nivel inferior: SHIFT y SLOPE en 2 columnas simetricas (solo en vista Full)
+        // 2. Nivel inferior: SHIFT y SLOPE en 2 columnas simetricas (solo en vista Full)
         if (! compactMode)
         {
-            mixDividerY = mixTop + mixSectionH;
+            mixDividerY = mixSectionH;
             const float bottomTop = mixDividerY + tokens::borderWidth;
             const float bottomH   = std::max (0.0f, panelBounds.getHeight() - bottomTop);
 
@@ -268,12 +241,9 @@ namespace umbral::ui
                                 tokens::radius,
                                 tokens::borderWidth);
 
-        // Lineas divisorias horizontales 1 px Hairline
+        // Linea divisoria horizontal 1 px Hairline (solo en vista Full)
         const float lineX = panelBounds.getX() + tokens::borderWidth;
         const float lineW = std::max (0.0f, panelBounds.getWidth() - tokens::borderWidth * 2.0f);
-
-        if (curveDividerY > 0.0f && curveDividerY < panelBounds.getHeight())
-            g.fillRect (lineX, curveDividerY, lineW, tokens::borderWidth);
 
         if (! compactMode && mixDividerY > 0.0f && mixDividerY < panelBounds.getHeight())
             g.fillRect (lineX, mixDividerY, lineW, tokens::borderWidth);
@@ -281,8 +251,7 @@ namespace umbral::ui
         // Encabezados de seccion en Archivo SemiBold 10 px ALL CAPS (Muted)
         g.setFont (sectionHeaderFont);
         g.setColour (tokens::muted);
-        g.drawText ("CURVE", curveHeaderArea, juce::Justification::centredLeft, false);
-        g.drawText ("MIX",   mixHeaderArea,   juce::Justification::centredLeft, false);
+        g.drawText ("MIX", mixHeaderArea, juce::Justification::centredLeft, false);
 
         if (! compactMode)
         {

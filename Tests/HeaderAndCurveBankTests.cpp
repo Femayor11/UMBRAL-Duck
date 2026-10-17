@@ -38,7 +38,7 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
     auto& header    = editor->getHeaderBar();
     auto& curveBank = editor->getCurveBankGrid();
 
-    SECTION ("HeaderBar defaults to RATE 1/4 SYNC active BPM 120.0 and BYPASS off")
+    SECTION ("HeaderBar defaults to RATE 1/4 SYNC active and BYPASS off")
     {
         CHECK (header.getSelectedRateIndex() == 1);
         CHECK_FALSE (header.getRateButton (0).getToggleState());
@@ -53,8 +53,6 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
 
         CHECK (header.isSyncEnabled());
         CHECK (header.getSyncButton().getToggleState());
-        CHECK_FALSE (header.getBpmSlider().isEnabled());
-        CHECK (header.getBpmReadoutText() == "120.0");
 
         CHECK_FALSE (header.isBypassEnabled());
         CHECK_FALSE (header.getBypassButton().getToggleState());
@@ -90,7 +88,7 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
     }
 }
 
-TEST_CASE ("HeaderBar RATE SYNC BPM and BYPASS interactions update APVTS", "[ui][header][t13]")
+TEST_CASE ("HeaderBar RATE SYNC and BYPASS interactions update APVTS", "[ui][header][t13]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     namespace ids = umbral::params::rawIDs;
@@ -123,7 +121,7 @@ TEST_CASE ("HeaderBar RATE SYNC BPM and BYPASS interactions update APVTS", "[ui]
         CHECK (header.getRateButton (3).getToggleState());
     }
 
-    SECTION ("Toggling SYNC enables manual BPM editing and propagates BPM to APVTS")
+    SECTION ("Toggling SYNC updates APVTS sync parameter")
     {
         REQUIRE (header.getSyncButton().onClick != nullptr);
         header.getSyncButton().onClick();
@@ -131,18 +129,11 @@ TEST_CASE ("HeaderBar RATE SYNC BPM and BYPASS interactions update APVTS", "[ui]
         CHECK_FALSE (header.isSyncEnabled());
         CHECK_FALSE (header.getSyncButton().getToggleState());
         CHECK (apvts.getRawParameterValue (ids::sync)->load() < 0.5f);
-        CHECK (header.getBpmSlider().isEnabled());
 
-        header.getBpmSlider().setValue (140.5, juce::sendNotificationSync);
-        CHECK_THAT (apvts.getRawParameterValue (ids::bpm)->load(), WithinAbs (140.5f, 0.15f));
-        CHECK (header.getBpmReadoutText() == "140.5");
-
-        // Reactivar SYNC vuelve a bloquear el control manual de BPM
         header.getSyncButton().onClick();
         CHECK (header.isSyncEnabled());
         CHECK (header.getSyncButton().getToggleState());
         CHECK (apvts.getRawParameterValue (ids::sync)->load() > 0.5f);
-        CHECK_FALSE (header.getBpmSlider().isEnabled());
     }
 
     SECTION ("Toggling BYPASS button updates APVTS bypass parameter")
@@ -160,28 +151,21 @@ TEST_CASE ("HeaderBar RATE SYNC BPM and BYPASS interactions update APVTS", "[ui]
         CHECK (apvts.getRawParameterValue (ids::bypass)->load() < 0.5f);
     }
 
-    SECTION ("Programmatic APVTS changes update HeaderBar controls and BPM formatting")
+    SECTION ("Programmatic APVTS changes update HeaderBar controls")
     {
         setNormalizedParam (apvts, ids::rate,   0.0f); // 1/8
         setNormalizedParam (apvts, ids::sync,   0.0f); // Free
-        setNormalizedParam (apvts, ids::bpm,    174.2f);
         setNormalizedParam (apvts, ids::bypass, 1.0f);
 
         CHECK (header.getSelectedRateIndex() == 0);
         CHECK (header.getRateButton (0).getToggleState());
         CHECK_FALSE (header.isSyncEnabled());
-        CHECK (header.getBpmSlider().isEnabled());
-        CHECK (header.getBpmReadoutText() == "174.2");
         CHECK (header.isBypassEnabled());
         CHECK (header.getBypassButton().getToggleState());
-
-        CHECK (umbral::ui::HeaderBar::formatBpm (10.0) == "40.0");
-        CHECK (umbral::ui::HeaderBar::formatBpm (300.0) == "240.0");
-        CHECK (umbral::ui::HeaderBar::formatBpm (std::numeric_limits<double>::quiet_NaN()) == "120.0");
     }
 }
 
-TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with ControlStrip and APVTS", "[ui][curvebank][t13]")
+TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with APVTS", "[ui][curvebank][t13]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     namespace ids = umbral::params::rawIDs;
@@ -194,9 +178,8 @@ TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with ControlStri
     REQUIRE (editor != nullptr);
 
     auto& curveBank = editor->getCurveBankGrid();
-    auto& strip     = editor->getControlStrip();
 
-    SECTION ("Selecting each cell in CurveBankGrid updates APVTS and ControlStrip ComboBox")
+    SECTION ("Selecting each cell in CurveBankGrid updates APVTS")
     {
         for (int i = 0; i < umbral::ui::CurveBankGrid::kNumCells; ++i)
         {
@@ -207,19 +190,17 @@ TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with ControlStri
 
             CHECK (curveBank.getSelectedCurveIndex() == i);
             CHECK (juce::roundToInt (apvts.getRawParameterValue (ids::curve)->load()) == i);
-            CHECK (strip.getCurveCombo().getSelectedItemIndex() == i);
         }
     }
 
-    SECTION ("Changing curve in ControlStrip ComboBox or APVTS updates CurveBankGrid selection")
+    SECTION ("Changing curve in APVTS updates CurveBankGrid selection")
     {
-        strip.getCurveCombo().setSelectedItemIndex (6, juce::sendNotificationSync); // 07 Logarithmic
+        setNormalizedParam (apvts, ids::curve, 6.0f); // 07 Logarithmic
         CHECK (curveBank.getSelectedCurveIndex() == 6);
         CHECK (juce::roundToInt (apvts.getRawParameterValue (ids::curve)->load()) == 6);
 
         setNormalizedParam (apvts, ids::curve, 15.0f); // 16 Custom
         CHECK (curveBank.getSelectedCurveIndex() == 15);
-        CHECK (strip.getCurveCombo().getSelectedItemIndex() == 15);
         CHECK (curveBank.isCellDashed (15));
     }
 }
@@ -257,7 +238,6 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
         curveBank.selectCurveIndex (15);
         header.selectRateIndex (2); // 1/2
         header.setSyncEnabled (false);
-        header.getBpmSlider().setValue (128.4, juce::sendNotificationSync);
 
         juce::Image fullCanvas (juce::Image::ARGB, editor->getWidth(), editor->getHeight(), true,
                                 juce::SoftwareImageType {});
@@ -293,7 +273,6 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
         CHECK (reopened->isCompactView());
         CHECK (reopened->getHeaderBar().getSelectedRateIndex() == 2);
         CHECK_FALSE (reopened->getHeaderBar().isSyncEnabled());
-        CHECK (reopened->getHeaderBar().getBpmReadoutText() == "128.4");
         CHECK (reopened->getCurveBankGrid().getSelectedCurveIndex() == 15);
         CHECK (juce::roundToInt (processor.getAPVTS().getRawParameterValue (ids::curve)->load()) == 15);
     }

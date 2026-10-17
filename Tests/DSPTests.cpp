@@ -86,9 +86,12 @@ TEST_CASE ("MathUtils: SLOPE p = 2^((K-0.5)*2)", "[dsp][math]")
 TEST_CASE ("MathUtils: shift, ganancia y dB", "[dsp][math]")
 {
     CHECK_THAT (math::applyShift (0.3f, 0.0f), WithinAbs (0.3f, 1e-6));
-    CHECK_THAT (math::applyShift (0.3f, 0.5f), WithinAbs (0.8f, 1e-6));
-    CHECK_THAT (math::applyShift (0.3f, 1.0f), WithinAbs (0.3f, 1e-6));
-    CHECK_THAT (math::applyShift (kNaN, 0.25f), WithinAbs (0.75f, 1e-6));
+    CHECK_THAT (math::applyShift (0.3f, 0.5f), WithinAbs (0.0f, 1e-6));
+    CHECK_THAT (math::applyShift (0.75f, 0.25f), WithinAbs (0.5f, 1e-6));
+    CHECK_THAT (math::applyShift (0.3f, 1.0f), WithinAbs (0.0f, 1e-6));
+    CHECK_THAT (math::applyShift (1.0f, 0.0f), WithinAbs (1.0f, 1e-6));
+    CHECK_THAT (math::applyShift (1.0f, 0.25f), WithinAbs (0.75f, 1e-6));
+    CHECK_THAT (math::applyShift (kNaN, 0.25f), WithinAbs (0.0f, 1e-6));
     CHECK_THAT (math::applyShift (0.3f, kInf), WithinAbs (0.3f, 1e-6));
 
     CHECK (math::gainFromCurve (0.0f, 0.0f) == 1.0f);
@@ -302,16 +305,21 @@ TEST_CASE ("CurveBank: indices fuera de rango se acotan", "[dsp][curves]")
     CHECK (dsp::evaluate (99, 0.35f, 0.0f, 0.5f) == dsp::evaluate (dsp::customCurveIndex, 0.35f, 0.0f, 0.5f));
 }
 
-TEST_CASE ("CurveBank: SHIFT desplaza la lectura con wrap ciclico", "[dsp][curves]")
+TEST_CASE ("CurveBank: SHIFT desplaza la lectura sin wrap ciclico", "[dsp][curves]")
 {
-    // C(frac(phi - S)): con S=0.25, phi=0.69 lee 04 Classic (indice 3) en 0.44 -> 0.50.
+    // C(max(0, phi - S)): con S=0.25, phi=0.69 lee 04 Classic (indice 3) en 0.44 -> 0.50.
     CHECK_THAT (dsp::evaluate (3, 0.69f, 0.25f, 0.5f), WithinAbs (0.50f, eps));
-    // Wrap: phi=0.1, S=0.25 -> 0.85
-    CHECK_THAT (dsp::evaluate (3, 0.1f, 0.25f, 0.5f), WithinAbs (dsp::evaluate (3, 0.85f, 0.0f, 0.5f), eps));
-    // S=1 equivale a S=0
+    // Sin wrap circular: durante [0, S], se mantiene el nivel base inicial C(0).
     for (int c = 0; c < dsp::numCurves; ++c)
-        CHECK_THAT (dsp::evaluate (c, 0.37f, 1.0f, 0.5f), WithinAbs (dsp::evaluate (c, 0.37f, 0.0f, 0.5f), eps));
-    // phi fuera de [0,1) se envuelve
+    {
+        const float initialLevel = dsp::getNodes (c).front().value;
+        CHECK_THAT (dsp::evaluate (c, 0.10f, 0.25f, 0.5f), WithinAbs (initialLevel, eps));
+        CHECK_THAT (dsp::evaluate (c, 0.25f, 0.25f, 0.5f), WithinAbs (initialLevel, eps));
+        CHECK_THAT (dsp::evaluate (c, 0.37f, 1.0f, 0.5f), WithinAbs (initialLevel, eps));
+    }
+    // En phi >= S la curva evoluciona como C(phi - S)
+    CHECK_THAT (dsp::evaluate (3, 0.55f, 0.25f, 0.5f), WithinAbs (dsp::evaluate (3, 0.30f, 0.0f, 0.5f), eps));
+    // phi fuera de [0,1) se normaliza
     CHECK_THAT (dsp::evaluate (12, 1.5f, 0.0f, 0.5f), WithinAbs (dsp::evaluate (12, 0.5f, 0.0f, 0.5f), eps));
     CHECK_THAT (dsp::evaluate (12, -0.5f, 0.0f, 0.5f), WithinAbs (dsp::evaluate (12, 0.5f, 0.0f, 0.5f), eps));
 }

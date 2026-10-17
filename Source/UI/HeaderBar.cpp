@@ -15,8 +15,7 @@ namespace umbral::ui
         : toggleViewCallback (std::move (onToggleViewMode)),
           brandBoldFont (UmbralLookAndFeel::getBrandFont (true)),
           brandLightFont (UmbralLookAndFeel::getBrandFont (false)),
-          sectionHeaderFont (UmbralLookAndFeel::getSectionHeaderFont()),
-          bpmValueFont (UmbralLookAndFeel::getBpmValueFont())
+          sectionHeaderFont (UmbralLookAndFeel::getSectionHeaderFont())
     {
         setOpaque (false);
 
@@ -26,14 +25,6 @@ namespace umbral::ui
             rateButtons[static_cast<size_t> (i)].onClick = [this, i]() { selectRateIndex (i); };
             addAndMakeVisible (rateButtons[static_cast<size_t> (i)]);
         }
-
-        // Control BPM: deslizador arrastrable vertical sin caja de texto nativa; el texto 20 px
-        // IBM Plex Mono se dibuja en paint() respetando los tokens de DESIGN.md.
-        bpmSlider.setSliderStyle (juce::Slider::RotaryVerticalDrag);
-        bpmSlider.setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
-        bpmSlider.setAlpha (0.0f);
-        bpmSlider.onValueChange = [this]() { updateBpmReadout(); };
-        addAndMakeVisible (bpmSlider);
 
         syncButton.setClickingTogglesState (false);
         syncButton.getProperties().set (UmbralLookAndFeel::kOutlineActiveStyleProperty, true);
@@ -65,9 +56,6 @@ namespace umbral::ui
         {
             updateRateFromParameter (1.0f);
         }
-
-        bpmAttachment = std::make_unique<SliderAttachment> (apvts, params::rawIDs::bpm, bpmSlider);
-        updateBpmReadout();
 
         if (auto* syncParam = apvts.getParameter (params::rawIDs::sync))
         {
@@ -102,14 +90,7 @@ namespace umbral::ui
     {
         bypassAttachment.reset();
         syncAttachment.reset();
-        bpmAttachment.reset();
         rateAttachment.reset();
-    }
-
-    juce::String HeaderBar::formatBpm (double bpmValue)
-    {
-        const double safe = std::isfinite (bpmValue) ? std::clamp (bpmValue, 40.0, 240.0) : 120.0;
-        return juce::String (safe, 1);
     }
 
     juce::TextButton& HeaderBar::getRateButton (int index) noexcept
@@ -158,7 +139,6 @@ namespace umbral::ui
         syncEnabled = enabled;
 
         syncButton.setToggleState (enabled, juce::dontSendNotification);
-        bpmSlider.setEnabled (! enabled);
         repaint();
     }
 
@@ -177,16 +157,6 @@ namespace umbral::ui
 
         bypassButton.setToggleState (enabled, juce::dontSendNotification);
         repaint();
-    }
-
-    void HeaderBar::updateBpmReadout()
-    {
-        const auto formatted = formatBpm (bpmSlider.getValue());
-        if (formatted != bpmReadoutText)
-        {
-            bpmReadoutText = formatted;
-            repaint();
-        }
     }
 
     void HeaderBar::setCompactMode (bool compact)
@@ -297,38 +267,19 @@ namespace umbral::ui
             rateButtons[static_cast<size_t> (i)].setBounds (juce::Rectangle<float> (bx, btnY, rateBtnW, btnH).toNearestInt());
         }
 
-        // 4. Bloque BPM + SYNC
+        // 4. Boton SYNC ubicado junto al selector RATE (o antes del toggle en Compact)
         const float syncW = static_cast<float> (t::headerSyncButtonWidth);
-        const float bpmW  = static_cast<float> (compactMode ? t::headerBpmCompactWidth : t::headerBpmWidth);
-
-        float bpmLeft = 0.0f;
         if (compactMode)
         {
             const float syncX = toggleX - static_cast<float> (t::headerControlGap) - syncW;
             syncButton.setBounds (juce::Rectangle<float> (syncX, btnY, syncW, btnH).toNearestInt());
-
-            bpmLeft      = syncX - static_cast<float> (t::headerControlGap) - bpmW;
-            bpmLabelArea = {};
-            bpmValueArea = { bpmLeft, btnY, bpmW, btnH };
         }
         else
         {
             const float lastRateRight = rateButtons[static_cast<size_t> (kNumRates - 1)].getBounds().toFloat().getRight();
-            bpmLeft = lastRateRight + static_cast<float> (t::panelGap) * 2.0f;
-
-            const float labelH = static_cast<float> (t::headerBpmLabelHeight);
-            const float valH   = static_cast<float> (t::headerBpmValueHeight);
-            const float totalH = labelH + valH;
-            const float topY   = centreY - totalH * 0.5f;
-
-            bpmLabelArea = { bpmLeft, topY, bpmW, labelH };
-            bpmValueArea = { bpmLeft, topY + labelH, bpmW, valH };
-
-            const float syncX = bpmValueArea.getRight() + static_cast<float> (t::headerControlGap);
+            const float syncX         = lastRateRight + static_cast<float> (t::headerControlGap);
             syncButton.setBounds (juce::Rectangle<float> (syncX, btnY, syncW, btnH).toNearestInt());
         }
-
-        bpmSlider.setBounds (bpmValueArea.toNearestInt());
     }
 
     void HeaderBar::paint (juce::Graphics& g)
@@ -354,18 +305,12 @@ namespace umbral::ui
         g.setFont (brandLightFont);
         g.drawText ("duck", logoLightTextArea, juce::Justification::centredLeft, false);
 
-        // 3. Etiquetas secundarias RATE y BPM (solo en vista Full)
+        // 3. Etiqueta secundaria RATE (solo en vista Full)
         if (! compactMode)
         {
             g.setFont (sectionHeaderFont);
             g.setColour (t::muted);
             g.drawText ("RATE", rateLabelArea, juce::Justification::centredLeft, false);
-            g.drawText ("BPM",  bpmLabelArea,  juce::Justification::centredLeft, false);
         }
-
-        // 4. Lectura numerica de BPM en IBM Plex Mono 20 px
-        g.setFont (bpmValueFont);
-        g.setColour (t::bone);
-        g.drawText (bpmReadoutText, bpmValueArea, juce::Justification::centredLeft, false);
     }
 } // namespace umbral::ui
