@@ -57,7 +57,6 @@ TEST_CASE ("HeaderBar and CurveBankGrid default state matches APVTS defaults", "
         CHECK_FALSE (header.isBypassEnabled());
         CHECK_FALSE (header.getBypassButton().getToggleState());
         CHECK (header.getBypassButton().isVisible());
-        CHECK (header.areSecondaryLabelsVisible());
     }
 
     SECTION ("CurveBankGrid defaults to 04 Classic with 2x8 matrix of 16 cells and slot 15 dashed")
@@ -213,7 +212,7 @@ TEST_CASE ("CurveBankGrid cell selection and bidirectional sync with APVTS", "[u
     }
 }
 
-TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscreen render", "[ui][header][curvebank][window][t13]")
+TEST_CASE ("HeaderBar and CurveBankGrid fixed layout and offscreen render", "[ui][header][curvebank][window][t13]")
 {
     juce::ScopedJuceInitialiser_GUI gui;
     namespace t = umbral::tokens;
@@ -229,12 +228,9 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
         auto& header    = editor->getHeaderBar();
         auto& curveBank = editor->getCurveBankGrid();
 
-        // 1. Vista Full (960 x 600)
-        CHECK_FALSE (editor->isCompactView());
-        CHECK_FALSE (header.isCompactMode());
+        // 1. Layout unico fijo (780 x 540)
         CHECK (header.getBounds() == juce::Rectangle<int> (0, 0, t::windowFullWidth, t::fullHeaderDividerY));
         CHECK (header.getBypassButton().isVisible());
-        CHECK (header.areSecondaryLabelsVisible());
 
         CHECK (curveBank.isVisible());
         CHECK (curveBank.getBounds() == juce::Rectangle<int> (t::windowPadding,
@@ -242,7 +238,7 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
                                                               t::fullBottomRowWidth,
                                                               t::fullBottomRowHeight));
 
-        // Selecciona celda 16 Custom y renderiza en Full
+        // Selecciona celda 16 Custom y renderiza
         curveBank.selectCurveIndex (15);
         header.selectRateIndex (2); // 1/2
         header.setSyncEnabled (false);
@@ -253,32 +249,14 @@ TEST_CASE ("HeaderBar and CurveBankGrid Full vs Compact adaptability and offscre
             juce::Graphics g (fullCanvas);
             editor->paintEntireComponent (g, false);
         }
-
-        // 2. Alternar a vista Compact (560 x 360) desde el boton de cabecera
-        header.getViewModeButton().onClick();
-
-        CHECK (editor->isCompactView());
-        CHECK (header.isCompactMode());
-        CHECK (header.getBounds() == juce::Rectangle<int> (0, 0, t::windowCompactWidth, t::compactHeaderDividerY));
-        CHECK_FALSE (header.getBypassButton().isVisible());
-        CHECK_FALSE (header.areSecondaryLabelsVisible());
-        CHECK_FALSE (curveBank.isVisible());
-
-        juce::Image compactCanvas (juce::Image::ARGB, editor->getWidth(), editor->getHeight(), true,
-                                   juce::SoftwareImageType {});
-        {
-            juce::Graphics g (compactCanvas);
-            editor->paintEntireComponent (g, false);
-        }
     }
 
-    // 3. Reapertura del editor tras destruccion: verifica sincronizacion con APVTS sin leaks
+    // 2. Reapertura del editor tras destruccion: verifica sincronizacion con APVTS sin leaks
     {
         std::unique_ptr<juce::AudioProcessorEditor> reopenedBase (processor.createEditor());
         auto* reopened = dynamic_cast<UmbralDuckEditor*> (reopenedBase.get());
         REQUIRE (reopened != nullptr);
 
-        CHECK (reopened->isCompactView());
         CHECK (reopened->getHeaderBar().getSelectedRateIndex() == 2);
         CHECK_FALSE (reopened->getHeaderBar().isSyncEnabled());
         CHECK (reopened->getCurveBankGrid().getSelectedCurveIndex() == 15);

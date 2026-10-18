@@ -72,9 +72,10 @@ namespace umbral::ui::geometry
 
     // G(phi) = (1 - M) + M * C_slope(applyShift(phi, S)), convertido con gainToDb (DSP_SPEC).
     // En phi = 1.0f con shift = 0.0f preserva el valor final del ciclo sin envolver a 0.0f.
-    [[nodiscard]] inline float effectiveGainDb (const CurveParams& p, float phi) noexcept
+    [[nodiscard]] inline float effectiveGainDb (const CurveParams& p, float phi,
+                                               std::span<const dsp::Node> customNodes = {}) noexcept
     {
-        return math::gainToDb (dsp::DuckingEngine::computeGain (p.curveIndex, phi, p.shift, p.slope, p.mix));
+        return math::gainToDb (dsp::DuckingEngine::computeGain (p.curveIndex, phi, p.shift, p.slope, p.mix, customNodes));
     }
 
     // Reconstruye la curva (trazo) y el relleno entre la curva y la linea de 0 dB.
@@ -82,7 +83,8 @@ namespace umbral::ui::geometry
     inline void buildPaths (const juce::Rectangle<float>& area,
                             const CurveParams& params,
                             juce::Path& curvePath,
-                            juce::Path& fillPath)
+                            juce::Path& fillPath,
+                            std::span<const dsp::Node> customNodes = {})
     {
         curvePath.clear();
         fillPath.clear();
@@ -99,7 +101,7 @@ namespace umbral::ui::geometry
         {
             const float phi = static_cast<float> (i) / static_cast<float> (curvePointCount - 1);
             const float x   = phaseToX (area, phi);
-            const float y   = dbToY (area, effectiveGainDb (params, phi));
+            const float y   = dbToY (area, effectiveGainDb (params, phi, customNodes));
 
             if (i == 0)
             {

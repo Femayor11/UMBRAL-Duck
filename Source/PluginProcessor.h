@@ -2,9 +2,11 @@
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include "Common/UiStateSnapshot.h"
+#include "DSP/CustomCurve.h"
 #include "DSP/DuckingEngine.h"
 #include "DSP/LevelMeterSource.h"
 #include "DSP/TransportClock.h"
+#include <array>
 #include <atomic>
 #include <vector>
 
@@ -35,12 +37,18 @@ public:
     void changeProgramName (int, const juce::String&) override {}
 
     static inline const juce::Identifier kIsCompactViewProperty { "isCompactView" };
+    static inline const juce::Identifier kCustomCurveType       { "CustomCurve" };
+    static inline const juce::Identifier kNodeTag               { "Node" };
 
     void getStateInformation (juce::MemoryBlock&) override;
     void setStateInformation (const void*, int) override;
 
     [[nodiscard]] bool isCompactView() const noexcept;
     void setCompactView (bool compact);
+
+    // Acceso thread-safe a la curva custom
+    [[nodiscard]] umbral::dsp::CustomCurveData getCustomCurve() const noexcept;
+    void setCustomCurve (const umbral::dsp::CustomCurveData& newCurve);
 
     juce::AudioProcessorValueTreeState& getAPVTS() noexcept { return apvts; }
     const juce::AudioProcessorValueTreeState& getAPVTS() const noexcept { return apvts; }
@@ -50,6 +58,10 @@ public:
 
 private:
     juce::AudioProcessorValueTreeState apvts;
+
+    // Triple buffer lock-free para la curva personalizada
+    std::array<umbral::dsp::CustomCurveData, 3> customCurveSlots {};
+    std::atomic<int> activeCustomCurveSlot { 0 };
 
     // Cache de punteros atomicos para lectura lock-free y RT-safe
     std::atomic<float>* rateParam     = nullptr;

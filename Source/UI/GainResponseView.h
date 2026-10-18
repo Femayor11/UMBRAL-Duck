@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Common/UiStateSnapshot.h"
+#include "DSP/CustomCurve.h"
 #include "UI/GainResponseGeometry.h"
 
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -35,6 +36,20 @@ namespace umbral::ui
         void paint (juce::Graphics&) override;
         void resized() override;
 
+        void mouseMove (const juce::MouseEvent& event) override;
+        void mouseDown (const juce::MouseEvent& event) override;
+        void mouseDrag (const juce::MouseEvent& event) override;
+        void mouseUp (const juce::MouseEvent& event) override;
+        void mouseDoubleClick (const juce::MouseEvent& event) override;
+        void mouseExit (const juce::MouseEvent& event) override;
+
+        // Establece el callback para cuando el usuario edita la curva custom
+        std::function<void (const dsp::CustomCurveData&)> onCustomCurveChanged;
+
+        // Actualiza los datos de la curva personalizada mostrada
+        void setCustomCurveData (const dsp::CustomCurveData& curve);
+        [[nodiscard]] const dsp::CustomCurveData& getCustomCurveData() const noexcept { return customCurve; }
+
         // La vista Compact oculta la pastilla "1.2.3".
         void setBarPillVisible (bool shouldBeVisible);
         [[nodiscard]] bool isBarPillVisible() const noexcept { return barPillVisible; }
@@ -45,10 +60,12 @@ namespace umbral::ui
         [[nodiscard]] juce::Rectangle<float> getPlotArea() const noexcept { return plotArea; }
         [[nodiscard]] const juce::Path& getCurvePath() const noexcept { return curvePath; }
         [[nodiscard]] const juce::Path& getFillPath() const noexcept { return fillPath; }
-        [[nodiscard]] const juce::String& getGainText() const noexcept { return gainText; }
         [[nodiscard]] const juce::String& getBarBeatText() const noexcept { return barBeatText; }
         [[nodiscard]] geometry::CurveParams getCurveParams() const noexcept { return curveParams; }
         [[nodiscard]] float getPlayheadPhase() const noexcept { return playheadPhase; }
+
+        [[nodiscard]] int getHoveredNodeIndex() const noexcept { return hoveredNodeIndex; }
+        [[nodiscard]] int getDraggingNodeIndex() const noexcept { return draggingNodeIndex; }
 
     private:
         void timerCallback() override { refresh(); }
@@ -56,9 +73,16 @@ namespace umbral::ui
         void updateLayout();
         void rebuildPaths();
         [[nodiscard]] geometry::CurveParams readCurveParams() const noexcept;
+        [[nodiscard]] int getNodeIndexAtPosition (juce::Point<float> pos) const noexcept;
+        [[nodiscard]] juce::Point<float> getNodePosition (int nodeIndex) const noexcept;
 
         const UiStateSnapshot& snapshot;
         ParameterSource parameters;
+
+        dsp::CustomCurveData customCurve = dsp::CustomCurveData::createDefault();
+        int hoveredNodeIndex   = -1;
+        int draggingNodeIndex  = -1;
+        static constexpr float kNodeHitRadius = 9.0f;
 
         // Geometria
         juce::Rectangle<float> panelBounds;
@@ -69,16 +93,13 @@ namespace umbral::ui
         // Estado cacheado (solo se modifica en refresh()/resized())
         geometry::CurveParams curveParams;
         float playheadPhase = 0.0f;
-        int lastGainTenths  = 0;
         dsp::BarBeatTick lastTick { 1, 1, 1 };
-        juce::String gainText;
         juce::String barBeatText;
         juce::Path curvePath;
         juce::Path fillPath;
 
         // Recursos preparados una sola vez
         juce::Font headerFont;
-        juce::Font readoutFont;
         juce::Font axisFont;
         juce::String headerLabel;
         std::array<juce::String, 5> dbLabels;

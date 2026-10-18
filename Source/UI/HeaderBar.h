@@ -20,16 +20,11 @@ namespace umbral::ui
     public:
         static constexpr int kNumRates = 4;
 
-        explicit HeaderBar (juce::AudioProcessorValueTreeState& apvts,
-                            std::function<void()> onToggleViewMode = {});
+        explicit HeaderBar (juce::AudioProcessorValueTreeState& apvts);
         ~HeaderBar() override;
 
         void paint (juce::Graphics&) override;
         void resized() override;
-
-        void setCompactMode (bool compact);
-        [[nodiscard]] bool isCompactMode() const noexcept { return compactMode; }
-        [[nodiscard]] bool areSecondaryLabelsVisible() const noexcept { return ! compactMode; }
 
         void selectRateIndex (int index);
         [[nodiscard]] int getSelectedRateIndex() const noexcept { return selectedRateIndex; }
@@ -50,21 +45,15 @@ namespace umbral::ui
         [[nodiscard]] juce::TextButton& getBypassButton() noexcept { return bypassButton; }
         [[nodiscard]] const juce::TextButton& getBypassButton() const noexcept { return bypassButton; }
 
-        [[nodiscard]] juce::TextButton& getViewModeButton() noexcept { return viewModeButton; }
-        [[nodiscard]] const juce::TextButton& getViewModeButton() const noexcept { return viewModeButton; }
-
     private:
         void updateRateFromParameter (float rawIndexValue);
         void updateSyncFromParameter (float rawBoolValue);
         void updateBypassFromParameter (float rawBoolValue);
         void rebuildLogoPaths();
 
-        bool compactMode   = false;
         int  selectedRateIndex = 1;
         bool syncEnabled   = true;
         bool bypassEnabled = false;
-
-        std::function<void()> toggleViewCallback;
 
         juce::Font brandBoldFont;
         juce::Font brandLightFont;
@@ -85,9 +74,8 @@ namespace umbral::ui
             juce::TextButton { "1/1" }
         };
 
-        juce::TextButton syncButton     { "SYNC" };
-        juce::TextButton bypassButton   { "BYPASS" };
-        juce::TextButton viewModeButton { "COMPACT" };
+        juce::TextButton syncButton   { "SYNC" };
+        juce::TextButton bypassButton { "BYPASS" };
 
         // Declarados despues de los controles UI para garantizar orden de destruccion seguro sin leaks.
         std::unique_ptr<juce::ParameterAttachment> rateAttachment;

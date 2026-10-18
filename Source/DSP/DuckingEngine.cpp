@@ -26,13 +26,20 @@ namespace umbral::dsp
         lastRawGain      = -1.0f;
     }
 
-    float DuckingEngine::computeGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept
+    float DuckingEngine::computeGain (int curveIndex, float phi, float shift, float slope, float mix,
+                                     std::span<const Node> customNodes) noexcept
     {
-        const float curveValue = evaluate (curveIndex, phi, shift, slope);
+        float curveValue = 1.0f;
+        if (curveIndex == customCurveIndex && ! customNodes.empty())
+            curveValue = evaluateNodes (customNodes, math::applyShift (phi, shift), slope);
+        else
+            curveValue = evaluate (curveIndex, phi, shift, slope);
+
         return math::gainFromCurve (curveValue, mix);
     }
 
-    float DuckingEngine::computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept
+    float DuckingEngine::computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix,
+                                             std::span<const Node> customNodes) noexcept
     {
         float safePhi = math::fallbackPhase;
         if (std::isfinite (phi))
@@ -43,11 +50,11 @@ namespace umbral::dsp
                 safePhi = math::frac (phi);
         }
 
-        const float nominalGain = computeGain (curveIndex, safePhi, shift, slope, mix);
+        const float nominalGain = computeGain (curveIndex, safePhi, shift, slope, mix, customNodes);
         if (safePhi <= kPreReleaseStartPhi)
             return nominalGain;
 
-        const float nextStartGain = computeGain (curveIndex, 0.0f, shift, slope, mix);
+        const float nextStartGain = computeGain (curveIndex, 0.0f, shift, slope, mix, customNodes);
         const float u = math::clamp01 ((safePhi - kPreReleaseStartPhi) / (1.0f - kPreReleaseStartPhi));
         const float w = math::smoothstep (u);
         return math::clamp01 (math::lerp (nominalGain, nextStartGain, w));
@@ -56,7 +63,8 @@ namespace umbral::dsp
     float DuckingEngine::evaluateAndSmoothSample (const DuckingParameters& params, float phi) noexcept
     {
         const float safePhi = math::frac (math::finiteOr (phi, math::fallbackPhase));
-        const float rawGain = computeAcousticGain (params.curveIndex, safePhi, params.shift, params.slope, params.mix);
+        const float rawGain = computeAcousticGain (params.curveIndex, safePhi, params.shift, params.slope, params.mix,
+                                                   params.customCurveNodes);
 
         if (lastRawGain >= 0.0f && std::abs (rawGain - lastRawGain) > kStepThreshold)
         {

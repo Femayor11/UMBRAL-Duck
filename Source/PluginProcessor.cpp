@@ -21,6 +21,29 @@ UmbralDuckProcessor::UmbralDuckProcessor()
 
     if (! apvts.state.hasProperty (kIsCompactViewProperty))
         apvts.state.setProperty (kIsCompactViewProperty, false, nullptr);
+
+    // Inicializar ranuras de curva custom con 04 Classic
+    const auto defaultCurve = umbral::dsp::CustomCurveData::createDefault();
+    for (auto& slot : customCurveSlots)
+        slot = defaultCurve;
+    activeCustomCurveSlot.store (0, std::memory_order_relaxed);
+
+    // Inicializar sub-arbol ValueTree de CustomCurve si no existe
+    if (! apvts.state.getChildWithName (kCustomCurveType).isValid())
+    {
+        juce::ValueTree customTree (kCustomCurveType);
+        for (int i = 0; i < defaultCurve.numNodes; ++i)
+        {
+            const auto& n = defaultCurve.nodes[static_cast<size_t> (i)];
+            juce::ValueTree nodeTree (kNodeTag);
+            nodeTree.setProperty ("phi", n.phi, nullptr);
+            nodeTree.setProperty ("value", n.value, nullptr);
+            nodeTree.setProperty ("shape", static_cast<int> (n.shape), nullptr);
+            nodeTree.setProperty ("exponent", n.exponent, nullptr);
+            customTree.addChild (nodeTree, -1, nullptr);
+        }
+        apvts.state.addChild (customTree, -1, nullptr);
+    }
 }
 
 void UmbralDuckProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
@@ -71,6 +94,9 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     params.channels   = static_cast<umbral::dsp::ChannelsMode> (
         static_cast<int> (channelsParam->load (std::memory_order_relaxed)));
     params.bypass     = bypassParam->load (std::memory_order_relaxed) > 0.5f;
+
+    const int activeSlot = activeCustomCurveSlot.load (std::memory_order_acquire);
+    params.customCurveNodes = customCurveSlots[static_cast<size_t> (activeSlot)].getSpan();
 
     // T-06: transporte. Lectura del PlayHead (JUCE 8: Optional<PositionInfo>), sin allocations.
     umbral::dsp::HostTransport host;
@@ -188,11 +214,76 @@ void UmbralDuckProcessor::setCompactView (bool compact)
     apvts.state.setProperty (kIsCompactViewProperty, compact, nullptr);
 }
 
+umbral::dsp::CustomCurveData UmbralDuckProcessor::getCustomCurve() const noexcept
+{
+    const int activeSlot = activeCustomCurveSlot.load (std::memory_order_acquire);
+    return customCurveSlots[static_cast<size_t> (activeSlot)];
+}
+
+void UmbralDuckProcessor::setCustomCurve (const umbral::dsp::CustomCurveData& newCurve)
+{
+    if (! newCurve.isValid())
+        return;
+
+    // Escribir en un slot inactivo del triple buffer
+    const int currentActive = activeCustomCurveSlot.load (std::memory_order_relaxed);
+    int nextSlot = (currentActive + 1) % 3;
+    customCurveSlots[static_cast<size_t> (nextSlot)] = newCurve;
+    activeCustomCurveSlot.store (nextSlot, std::memory_order_release);
+
+    // Actualizar ValueTree
+    auto customTree = apvts.state.getChildWithName (kCustomCurveType);
+    if (! customTree.isValid())
+    {
+        customTree = juce::ValueTree (kCustomCurveType);
+        apvts.state.addChild (customTree, -1, nullptr);
+    }
+    else
+    {
+        customTree.removeAllChildren (nullptr);
+    }
+
+    for (int i = 0; i < newCurve.numNodes; ++i)
+    {
+        const auto& n = newCurve.nodes[static_cast<size_t> (i)];
+        juce::ValueTree nodeTree (kNodeTag);
+        nodeTree.setProperty ("phi", n.phi, nullptr);
+        nodeTree.setProperty ("value", n.value, nullptr);
+        nodeTree.setProperty ("shape", static_cast<int> (n.shape), nullptr);
+        nodeTree.setProperty ("exponent", n.exponent, nullptr);
+        customTree.addChild (nodeTree, -1, nullptr);
+    }
+}
+
 void UmbralDuckProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
     auto state = apvts.copyState();
     if (! state.hasProperty (kIsCompactViewProperty))
         state.setProperty (kIsCompactViewProperty, false, nullptr);
+
+    // Asegurar que el sub-arbol CustomCurve este sincronizado
+    const auto currentCurve = getCustomCurve();
+    auto customTree = state.getChildWithName (kCustomCurveType);
+    if (! customTree.isValid())
+    {
+        customTree = juce::ValueTree (kCustomCurveType);
+        state.addChild (customTree, -1, nullptr);
+    }
+    else
+    {
+        customTree.removeAllChildren (nullptr);
+    }
+
+    for (int i = 0; i < currentCurve.numNodes; ++i)
+    {
+        const auto& n = currentCurve.nodes[static_cast<size_t> (i)];
+        juce::ValueTree nodeTree (kNodeTag);
+        nodeTree.setProperty ("phi", n.phi, nullptr);
+        nodeTree.setProperty ("value", n.value, nullptr);
+        nodeTree.setProperty ("shape", static_cast<int> (n.shape), nullptr);
+        nodeTree.setProperty ("exponent", n.exponent, nullptr);
+        customTree.addChild (nodeTree, -1, nullptr);
+    }
 
     std::unique_ptr<juce::XmlElement> xml (state.createXml());
     copyXmlToBinary (*xml, destData);
@@ -206,10 +297,35 @@ void UmbralDuckProcessor::setStateInformation (const void* data, int sizeInBytes
         auto restored = juce::ValueTree::fromXml (*xmlState);
         const bool compact = static_cast<bool> (restored.getProperty (kIsCompactViewProperty, false));
         restored.setProperty (kIsCompactViewProperty, compact, nullptr);
-        apvts.replaceState (restored);
 
-        if (auto* editor = dynamic_cast<UmbralDuckEditor*> (getActiveEditor()))
-            editor->setCompactView (compact);
+        // Restaurar curva personalizada si esta presente en el estado
+        auto customTree = restored.getChildWithName (kCustomCurveType);
+        if (customTree.isValid() && customTree.getNumChildren() >= umbral::dsp::CustomCurveData::kMinNodes)
+        {
+            umbral::dsp::CustomCurveData curve;
+            const int count = std::min (customTree.getNumChildren(), umbral::dsp::CustomCurveData::kMaxNodes);
+            curve.numNodes = count;
+            for (int i = 0; i < count; ++i)
+            {
+                auto nodeTree = customTree.getChild (i);
+                curve.nodes[static_cast<size_t> (i)] = umbral::dsp::Node {
+                    static_cast<float> (nodeTree.getProperty ("phi", 0.0)),
+                    static_cast<float> (nodeTree.getProperty ("value", 0.0)),
+                    static_cast<umbral::dsp::SegmentShape> (static_cast<int> (nodeTree.getProperty ("shape", 0))),
+                    static_cast<float> (nodeTree.getProperty ("exponent", 1.0))
+                };
+            }
+
+            if (curve.isValid())
+            {
+                const int currentActive = activeCustomCurveSlot.load (std::memory_order_relaxed);
+                int nextSlot = (currentActive + 1) % 3;
+                customCurveSlots[static_cast<size_t> (nextSlot)] = curve;
+                activeCustomCurveSlot.store (nextSlot, std::memory_order_release);
+            }
+        }
+
+        apvts.replaceState (restored);
     }
 }
 

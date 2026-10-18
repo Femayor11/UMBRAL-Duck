@@ -88,9 +88,6 @@ namespace umbral::ui
         void paint (juce::Graphics&) override;
         void resized() override;
 
-        void setCompactMode (bool compact);
-        [[nodiscard]] bool isCompactMode() const noexcept { return compactMode; }
-
         [[nodiscard]] static juce::String formatPercentage (double value);
 
         [[nodiscard]] ParameterKnobSlider& getMixSlider() noexcept { return mixSlider; }
@@ -107,8 +104,6 @@ namespace umbral::ui
     private:
         static void configureRotaryKnob (juce::Slider& slider);
         void updateReadouts();
-
-        bool compactMode = false;
 
         juce::Font sectionHeaderFont;
         juce::Font mixReadoutFont;

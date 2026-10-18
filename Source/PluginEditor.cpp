@@ -20,7 +20,7 @@ namespace
 UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
-      headerBar (p.getAPVTS(), [this]() { toggleViewMode(); }),
+      headerBar (p.getAPVTS()),
       controlStrip (p.getAPVTS(), this),
       gainResponseView (p.getUiSnapshot(), makeParameterSource (p)),
       levelMeters (p.getUiSnapshot()),
@@ -31,6 +31,18 @@ UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
 
     levelMeters.setChannelsSectionOffset (umbral::tokens::channelsSectionHeight);
 
+    // Sincronizar estado inicial de la curva personalizada
+    const auto initialCustomCurve = processorRef.getCustomCurve();
+    gainResponseView.setCustomCurveData (initialCustomCurve);
+    curveBankGrid.setCustomCurveData (initialCustomCurve);
+
+    // Enlazar cambios del editor interactivo al procesador y al grid
+    gainResponseView.onCustomCurveChanged = [this] (const umbral::dsp::CustomCurveData& newCurve)
+    {
+        processorRef.setCustomCurve (newCurve);
+        curveBankGrid.setCustomCurveData (newCurve);
+    };
+
     addAndMakeVisible (headerBar);
     addAndMakeVisible (controlStrip);
     addAndMakeVisible (gainResponseView);
@@ -39,7 +51,10 @@ UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
     addAndMakeVisible (curveBankGrid);
 
     setResizable (false, false);
-    applyViewMode (processorRef.isCompactView(), false);
+    setResizeLimits (umbral::tokens::windowFullWidth, umbral::tokens::windowFullHeight,
+                     umbral::tokens::windowFullWidth, umbral::tokens::windowFullHeight);
+    setSize (umbral::tokens::windowFullWidth, umbral::tokens::windowFullHeight);
+
     processorRef.getAPVTS().state.addListener (this);
 }
 
@@ -49,60 +64,13 @@ UmbralDuckEditor::~UmbralDuckEditor()
     setLookAndFeel (nullptr);
 }
 
-void UmbralDuckEditor::setCompactView (bool compact)
-{
-    applyViewMode (compact, true);
-}
-
-void UmbralDuckEditor::toggleViewMode()
-{
-    setCompactView (! compactView);
-}
-
-void UmbralDuckEditor::applyViewMode (bool compact, bool persistToProcessor)
-{
-    namespace t = umbral::tokens;
-
-    compactView = compact;
-    if (persistToProcessor)
-        processorRef.setCompactView (compact);
-
-    headerBar.setCompactMode (compact);
-    controlStrip.setCompactMode (compact);
-    levelMeters.setVisible (! compact);
-    channelsSelector.setVisible (! compact);
-    gainResponseView.setBarPillVisible (! compact);
-    curveBankGrid.setVisible (! compact);
-
-    const int targetWidth  = compact ? t::windowCompactWidth  : t::windowFullWidth;
-    const int targetHeight = compact ? t::windowCompactHeight : t::windowFullHeight;
-
-    setResizable (false, false);
-    setResizeLimits (targetWidth, targetHeight, targetWidth, targetHeight);
-    setSize (targetWidth, targetHeight);
-    resized();
-    repaint();
-}
-
-void UmbralDuckEditor::valueTreePropertyChanged (juce::ValueTree& treeWhosePropertyHasChanged,
-                                                 const juce::Identifier& property)
-{
-    if (treeWhosePropertyHasChanged == processorRef.getAPVTS().state
-        && property == UmbralDuckProcessor::kIsCompactViewProperty)
-    {
-        const bool targetCompact = processorRef.isCompactView();
-        if (compactView != targetCompact)
-            applyViewMode (targetCompact, false);
-    }
-}
-
 void UmbralDuckEditor::valueTreeRedirected (juce::ValueTree& treeWhichHasBeenChanged)
 {
     if (treeWhichHasBeenChanged == processorRef.getAPVTS().state)
     {
-        const bool targetCompact = processorRef.isCompactView();
-        if (compactView != targetCompact)
-            applyViewMode (targetCompact, false);
+        const auto restoredCurve = processorRef.getCustomCurve();
+        gainResponseView.setCustomCurveData (restoredCurve);
+        curveBankGrid.setCustomCurveData (restoredCurve);
     }
 }
 
@@ -112,7 +80,7 @@ void UmbralDuckEditor::paint (juce::Graphics& g)
 
     g.fillAll (t::umbra);
 
-    const float dividerY = static_cast<float> (compactView ? t::compactHeaderDividerY : t::fullHeaderDividerY);
+    const float dividerY = static_cast<float> (t::fullHeaderDividerY);
     g.setColour (t::hairline);
     g.fillRect (0.0f, dividerY, static_cast<float> (getWidth()), t::borderWidth);
 }
@@ -121,44 +89,20 @@ void UmbralDuckEditor::resized()
 {
     namespace t = umbral::tokens;
 
-    if (compactView)
-    {
-        headerBar.setBounds (0, 0, getWidth(), t::compactHeaderDividerY);
+    headerBar.setBounds (0, 0, getWidth(), t::fullHeaderDividerY);
 
-        // Cuadricula Compact (DESIGN.md §5):
-        // Panel izquierdo GAIN RESPONSE (350 x 279 en x = 16, y = 65)
-        // Panel derecho CURVE & MIX (160 x 279 en x = 382, y = 65)
-        const int rightX = t::windowPaddingCompact + t::compactLeftPanelWidth + t::panelGapCompact;
+    // Fila media (DESIGN.md): [16 | 176 | 14 | 408 | 14 | 136 | 16]
+    const int centerX = t::windowPadding + t::fullLeftPanelWidth + t::panelGap;
+    const int rightX  = centerX + t::fullCenterPanelWidth + t::panelGap;
 
-        gainResponseView.setBounds (t::windowPaddingCompact,
-                                    t::compactContentTop,
-                                    t::compactLeftPanelWidth,
-                                    t::compactPanelRowHeight);
+    controlStrip.setBounds (t::windowPadding, t::fullContentTop, t::fullLeftPanelWidth, t::fullPanelRowHeight);
+    gainResponseView.setBounds (centerX, t::fullContentTop, t::fullCenterPanelWidth, t::fullPanelRowHeight);
+    levelMeters.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::fullPanelRowHeight);
+    channelsSelector.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::channelsSectionHeight);
 
-        controlStrip.setBounds (rightX,
-                                t::compactContentTop,
-                                t::compactRightPanelWidth,
-                                t::compactPanelRowHeight);
-
-        curveBankGrid.setBounds (0, 0, 0, 0);
-    }
-    else
-    {
-        headerBar.setBounds (0, 0, getWidth(), t::fullHeaderDividerY);
-
-        // Fila media Full (DESIGN.md §5): [20 | 193 | 20 | 534 | 20 | 153 | 20]
-        const int centerX = t::windowPadding + t::fullLeftPanelWidth + t::panelGap;
-        const int rightX  = centerX + t::fullCenterPanelWidth + t::panelGap;
-
-        controlStrip.setBounds (t::windowPadding, t::fullContentTop, t::fullLeftPanelWidth, t::fullPanelRowHeight);
-        gainResponseView.setBounds (centerX, t::fullContentTop, t::fullCenterPanelWidth, t::fullPanelRowHeight);
-        levelMeters.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::fullPanelRowHeight);
-        channelsSelector.setBounds (rightX, t::fullContentTop, t::fullRightPanelWidth, t::channelsSectionHeight);
-
-        // Fila inferior Full (DESIGN.md §5): CURVE BANK (920 x 114 en x = 20, y = 466)
-        curveBankGrid.setBounds (t::windowPadding,
-                                 t::fullBottomRowTop,
-                                 t::fullBottomRowWidth,
-                                 t::fullBottomRowHeight);
-    }
+    // Fila inferior: CURVE BANK (748 x 149 en x = 16, y = 375)
+    curveBankGrid.setBounds (t::windowPadding,
+                             t::fullBottomRowTop,
+                             t::fullBottomRowWidth,
+                             t::fullBottomRowHeight);
 }

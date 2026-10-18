@@ -37,6 +37,7 @@ target_sources(UmbralDuck PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginProcessor.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/PluginEditor.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/CurveBank.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/CustomCurve.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/DuckingEngine.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/GainSmoother.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Source/DSP/PhaseClock.cpp"
@@ -84,7 +85,8 @@ add_executable(UmbralDuckTests
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/GainResponseViewTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/WindowViewPersistenceTests.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ControlStripTests.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/HeaderAndCurveBankTests.cpp")
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/HeaderAndCurveBankTests.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/Tests/CustomCurveTests.cpp")
 target_compile_definitions(UmbralDuckTests PRIVATE JUCE_STANDALONE_APPLICATION=0)
 target_link_libraries(UmbralDuckTests
     PRIVATE

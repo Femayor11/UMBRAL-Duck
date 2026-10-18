@@ -89,4 +89,10 @@ namespace umbral::math
     {
         return 20.0f * std::log10 (std::max (finiteOr (gain, 1.0f), gainFloor));
     }
+
+    // G = 10^(dB / 20)
+    [[nodiscard]] inline float dbToGain (float db) noexcept
+    {
+        return std::pow (10.0f, finiteOr (db, 0.0f) * 0.05f);
+    }
 }

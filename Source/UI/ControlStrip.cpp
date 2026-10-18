@@ -263,15 +263,6 @@ namespace umbral::ui
         }
     }
 
-    void ControlStrip::setCompactMode (bool compact)
-    {
-        compactMode = compact;
-        shiftSlider.setVisible (! compact);
-        slopeSlider.setVisible (! compact);
-        resized();
-        repaint();
-    }
-
     void ControlStrip::resized()
     {
         panelBounds = getLocalBounds().toFloat();
@@ -281,11 +272,9 @@ namespace umbral::ui
         const float pad     = static_cast<float> (tokens::panelPadding);
         const float headerH = static_cast<float> (tokens::knobHeaderHeight);
 
-        // 1. Nivel superior: MIX (174 px en Full y todo el panel en Compact)
+        // 1. Nivel superior: MIX (174 px en Full)
         const float fullMixH = static_cast<float> (tokens::mixSectionHeightFull);
-        const float mixSectionH = compactMode
-                                      ? panelBounds.getHeight()
-                                      : std::min (fullMixH, panelBounds.getHeight());
+        const float mixSectionH = std::min (fullMixH, panelBounds.getHeight());
 
         auto mixSection = juce::Rectangle<float> (0.0f, 0.0f, panelBounds.getWidth(), mixSectionH).reduced (pad);
         mixHeaderArea  = mixSection.removeFromTop (headerH);
@@ -297,39 +286,28 @@ namespace umbral::ui
         const auto mixKnobRect = juce::Rectangle<float> (mixKnobSize, mixKnobSize).withCentre (mixSection.getCentre());
         mixSlider.setBounds (mixKnobRect.toNearestInt());
 
-        // 2. Nivel inferior: SHIFT y SLOPE en 2 columnas simetricas (solo en vista Full)
-        if (! compactMode)
-        {
-            mixDividerY = mixSectionH;
-            const float bottomTop = mixDividerY + tokens::borderWidth;
-            const float bottomH   = std::max (0.0f, panelBounds.getHeight() - bottomTop);
+        // 2. Nivel inferior: SHIFT y SLOPE en 2 columnas simetricas
+        mixDividerY = mixSectionH;
+        const float bottomTop = mixDividerY + tokens::borderWidth;
+        const float bottomH   = std::max (0.0f, panelBounds.getHeight() - bottomTop);
 
-            auto bottomSection = juce::Rectangle<float> (0.0f, bottomTop, panelBounds.getWidth(), bottomH)
-                                     .reduced (pad, pad * 0.65f);
-            const float colW = bottomSection.getWidth() * 0.5f;
+        auto bottomSection = juce::Rectangle<float> (0.0f, bottomTop, panelBounds.getWidth(), bottomH)
+                                 .reduced (pad, pad * 0.65f);
+        const float colW = bottomSection.getWidth() * 0.5f;
 
-            auto leftCol  = juce::Rectangle<float> (bottomSection.getX(),        bottomSection.getY(), colW, bottomSection.getHeight());
-            auto rightCol = juce::Rectangle<float> (bottomSection.getX() + colW, bottomSection.getY(), colW, bottomSection.getHeight());
+        auto leftCol  = juce::Rectangle<float> (bottomSection.getX(),        bottomSection.getY(), colW, bottomSection.getHeight());
+        auto rightCol = juce::Rectangle<float> (bottomSection.getX() + colW, bottomSection.getY(), colW, bottomSection.getHeight());
 
-            shiftHeaderArea  = leftCol.removeFromTop (headerH);
-            shiftReadoutArea = leftCol.removeFromBottom (static_cast<float> (tokens::secondaryReadoutHeight));
-            const float secKnobSize = std::min ({ static_cast<float> (tokens::knobSecondaryDiameter),
-                                                  leftCol.getWidth(),
-                                                  std::max (0.0f, leftCol.getHeight()) });
-            shiftSlider.setBounds (juce::Rectangle<float> (secKnobSize, secKnobSize).withCentre (leftCol.getCentre()).toNearestInt());
+        shiftHeaderArea  = leftCol.removeFromTop (headerH);
+        shiftReadoutArea = leftCol.removeFromBottom (static_cast<float> (tokens::secondaryReadoutHeight));
+        const float secKnobSize = std::min ({ static_cast<float> (tokens::knobSecondaryDiameter),
+                                              leftCol.getWidth(),
+                                              std::max (0.0f, leftCol.getHeight()) });
+        shiftSlider.setBounds (juce::Rectangle<float> (secKnobSize, secKnobSize).withCentre (leftCol.getCentre()).toNearestInt());
 
-            slopeHeaderArea  = rightCol.removeFromTop (headerH);
-            slopeReadoutArea = rightCol.removeFromBottom (static_cast<float> (tokens::secondaryReadoutHeight));
-            slopeSlider.setBounds (juce::Rectangle<float> (secKnobSize, secKnobSize).withCentre (rightCol.getCentre()).toNearestInt());
-        }
-        else
-        {
-            mixDividerY      = 0.0f;
-            shiftHeaderArea  = {};
-            shiftReadoutArea = {};
-            slopeHeaderArea  = {};
-            slopeReadoutArea = {};
-        }
+        slopeHeaderArea  = rightCol.removeFromTop (headerH);
+        slopeReadoutArea = rightCol.removeFromBottom (static_cast<float> (tokens::secondaryReadoutHeight));
+        slopeSlider.setBounds (juce::Rectangle<float> (secKnobSize, secKnobSize).withCentre (rightCol.getCentre()).toNearestInt());
     }
 
     void ControlStrip::paint (juce::Graphics& g)
@@ -346,23 +324,20 @@ namespace umbral::ui
                                 tokens::radius,
                                 tokens::borderWidth);
 
-        // Linea divisoria horizontal 1 px Hairline (solo en vista Full)
+        // Linea divisoria horizontal 1 px Hairline
         const float lineX = panelBounds.getX() + tokens::borderWidth;
         const float lineW = std::max (0.0f, panelBounds.getWidth() - tokens::borderWidth * 2.0f);
 
-        if (! compactMode && mixDividerY > 0.0f && mixDividerY < panelBounds.getHeight())
+        if (mixDividerY > 0.0f && mixDividerY < panelBounds.getHeight())
             g.fillRect (lineX, mixDividerY, lineW, tokens::borderWidth);
 
         // Encabezados de seccion en Archivo SemiBold 10 px ALL CAPS (Muted)
+        // Etiqueta MIX centrada horizontalmente justo encima del knob principal
         g.setFont (sectionHeaderFont);
         g.setColour (tokens::muted);
-        g.drawText ("MIX", mixHeaderArea, juce::Justification::centredLeft, false);
-
-        if (! compactMode)
-        {
-            g.drawText ("SHIFT", shiftHeaderArea, juce::Justification::centred, false);
-            g.drawText ("SLOPE", slopeHeaderArea, juce::Justification::centred, false);
-        }
+        g.drawText ("MIX", mixHeaderArea, juce::Justification::centred, false);
+        g.drawText ("SHIFT", shiftHeaderArea, juce::Justification::centred, false);
+        g.drawText ("SLOPE", slopeHeaderArea, juce::Justification::centred, false);
 
         // Lectura principal de MIX en IBM Plex Mono 21 px (Bone)
         g.setFont (mixReadoutFont);
@@ -370,11 +345,8 @@ namespace umbral::ui
         g.drawText (mixReadoutText, mixReadoutArea, juce::Justification::centred, false);
 
         // Lecturas secundarias de SHIFT y SLOPE en IBM Plex Mono 13 px (Bone)
-        if (! compactMode)
-        {
-            g.setFont (secondaryReadoutFont);
-            g.drawText (shiftReadoutText, shiftReadoutArea, juce::Justification::centred, false);
-            g.drawText (slopeReadoutText, slopeReadoutArea, juce::Justification::centred, false);
-        }
+        g.setFont (secondaryReadoutFont);
+        g.drawText (shiftReadoutText, shiftReadoutArea, juce::Justification::centred, false);
+        g.drawText (slopeReadoutText, slopeReadoutArea, juce::Justification::centred, false);
     }
 } // namespace umbral::ui

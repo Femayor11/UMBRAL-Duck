@@ -116,6 +116,16 @@ namespace umbral::ui
         }
     }
 
+    void CurveBankGrid::setCustomCurveData (const dsp::CustomCurveData& curve)
+    {
+        if (customCurve == curve)
+            return;
+
+        customCurve = curve;
+        rebuildCellPaths();
+        repaint();
+    }
+
     void CurveBankGrid::rebuildCellPaths()
     {
         for (int i = 0; i < kNumCells; ++i)
@@ -128,7 +138,12 @@ namespace umbral::ui
             if (plot.isEmpty())
                 continue;
 
-            const auto nodes = dsp::getNodes (i);
+            std::span<const dsp::Node> nodes;
+            if (i == dsp::customCurveIndex && customCurve.isValid())
+                nodes = customCurve.getSpan();
+            else
+                nodes = dsp::getNodes (i);
+
             juce::Path basePath;
             float prevY = plot.getBottom();
 

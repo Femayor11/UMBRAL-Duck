@@ -1,5 +1,6 @@
 #pragma once
 
+#include "DSP/CurveBank.h"
 #include "DSP/GainSmoother.h"
 
 #include <span>
@@ -23,6 +24,7 @@ namespace umbral::dsp
         float slope              = 0.5f;                 // Normalizado [0, 1]
         ChannelsMode channels    = ChannelsMode::Stereo;
         bool bypass              = false;
+        std::span<const Node> customCurveNodes {};       // Nodos para curveIndex == customCurveIndex (15)
     };
 
     class DuckingEngine
@@ -45,11 +47,13 @@ namespace umbral::dsp
         // Calcula la ganancia efectiva instantanea (sin suavizado) para la representacion visual y matematica:
         // G(phi) = (1 - M) + M * C_slope(applyShift(phi, S))
         // Salida garantizada finita en [0, 1].
-        [[nodiscard]] static float computeGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept;
+        [[nodiscard]] static float computeGain (int curveIndex, float phi, float shift, float slope, float mix,
+                                                std::span<const Node> customNodes = {}) noexcept;
 
         // Calcula la ganancia acustica instantanea aplicando lookahead de fin de ciclo en [0.97, 1.0]:
         // Interpola suavemente con smoothstep C1 hacia G(0.0) para garantizar continuidad periodica exacta G(1.0-) == G(0.0+).
-        [[nodiscard]] static float computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept;
+        [[nodiscard]] static float computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix,
+                                                        std::span<const Node> customNodes = {}) noexcept;
 
         // Procesa un bloque de canales (1 mono o 2 estereo) aplicando una fase constante al bloque (T-04).
         void process (float* const* channels, int numChannels, int numSamples,

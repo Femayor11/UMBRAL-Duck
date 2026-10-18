@@ -249,21 +249,16 @@ TEST_CASE ("GainResponseView refresh reads the snapshot and parameters", "[ui][g
     umbral::ui::GainResponseView view (snapshot, { &curve, &mix, &shift, &slope });
     view.setBounds (0, 0, 534, 368);
 
-    SECTION ("snapshot values are mirrored")
+    SECTION ("snapshot values are mirrored and plotArea has vertical breathing margin")
     {
         snapshot.publish (0.25f, -14.2f, { 2, 3, 4 }, -10.0f, -12.0f);
         view.refresh();
 
-        CHECK (view.getGainText() == "-14.2 dB");
         CHECK (view.getBarBeatText() == "2.3.4");
         CHECK_THAT (view.getPlayheadPhase(), WithinAbs (0.25f, 1.0e-6f));
-    }
 
-    SECTION ("readout reaches -60 dB")
-    {
-        snapshot.publish (0.0f, -60.0f, { 1, 1, 1 }, -60.0f, -60.0f);
-        view.refresh();
-        CHECK (view.getGainText() == "-60.0 dB");
+        const float expectedTop = static_cast<float> (umbral::tokens::panelPadding + umbral::tokens::graphHeaderHeight + 8);
+        CHECK_THAT (view.getPlotArea().getY(), WithinAbs (expectedTop, 1.0e-3f));
     }
 
     SECTION ("parameter changes rebuild the effective curve")
@@ -292,7 +287,7 @@ TEST_CASE ("GainResponseView renders offscreen without hanging", "[ui][gainrespo
     umbral::UiStateSnapshot snapshot;
     umbral::ui::GainResponseView view (snapshot, {});
 
-    SECTION ("full size draws Signal pixels for curve and readout without playhead")
+    SECTION ("full size draws Signal pixels for curve without playhead")
     {
         view.setBounds (0, 0, 534, 368);
         snapshot.publish (0.5f, -14.2f, { 1, 2, 3 }, -20.0f, -22.0f);

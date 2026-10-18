@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DSP/CurveBank.h"
+#include "DSP/CustomCurve.h"
 
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
@@ -44,6 +45,9 @@ namespace umbral::ui
         [[nodiscard]] int getSelectedCurveIndex() const noexcept { return selectedCurveIndex; }
         [[nodiscard]] int getHoveredCellIndex() const noexcept { return hoveredCellIndex; }
 
+        void setCustomCurveData (const dsp::CustomCurveData& curve);
+        [[nodiscard]] const dsp::CustomCurveData& getCustomCurveData() const noexcept { return customCurve; }
+
         [[nodiscard]] int getCellIndexAtPosition (juce::Point<float> position) const noexcept;
         [[nodiscard]] juce::Rectangle<float> getCellBounds (int index) const noexcept;
         [[nodiscard]] const juce::Path& getCellPreviewPath (int index) const noexcept;
@@ -55,6 +59,7 @@ namespace umbral::ui
         void updateCurveFromParameter (float rawIndexValue);
         void rebuildCellPaths();
 
+        dsp::CustomCurveData customCurve = dsp::CustomCurveData::createDefault();
         int selectedCurveIndex = dsp::defaultCurveIndex; // Default: 04 Classic
         int hoveredCellIndex   = -1;
 

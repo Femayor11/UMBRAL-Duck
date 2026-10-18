@@ -10,10 +10,8 @@
 
 namespace umbral::ui
 {
-    HeaderBar::HeaderBar (juce::AudioProcessorValueTreeState& apvts,
-                          std::function<void()> onToggleViewMode)
-        : toggleViewCallback (std::move (onToggleViewMode)),
-          brandBoldFont (UmbralLookAndFeel::getBrandFont (true)),
+    HeaderBar::HeaderBar (juce::AudioProcessorValueTreeState& apvts)
+        : brandBoldFont (UmbralLookAndFeel::getBrandFont (true)),
           brandLightFont (UmbralLookAndFeel::getBrandFont (false)),
           sectionHeaderFont (UmbralLookAndFeel::getSectionHeaderFont())
     {
@@ -35,14 +33,6 @@ namespace umbral::ui
         bypassButton.getProperties().set (UmbralLookAndFeel::kOutlineActiveStyleProperty, true);
         bypassButton.onClick = [this]() { setBypassEnabled (! bypassEnabled); };
         addAndMakeVisible (bypassButton);
-
-        viewModeButton.setClickingTogglesState (false);
-        viewModeButton.getProperties().set (UmbralLookAndFeel::kOutlineActiveStyleProperty, true);
-        viewModeButton.onClick = [this]() {
-            if (toggleViewCallback)
-                toggleViewCallback();
-        };
-        addAndMakeVisible (viewModeButton);
 
         if (auto* rateParam = apvts.getParameter (params::rawIDs::rate))
         {
@@ -159,16 +149,6 @@ namespace umbral::ui
         repaint();
     }
 
-    void HeaderBar::setCompactMode (bool compact)
-    {
-        compactMode = compact;
-        bypassButton.setVisible (! compact);
-        viewModeButton.setToggleState (compact, juce::dontSendNotification);
-        viewModeButton.setButtonText (compact ? "FULL" : "COMPACT");
-        resized();
-        repaint();
-    }
-
     void HeaderBar::rebuildLogoPaths()
     {
         logoArchPath.clear();
@@ -207,7 +187,7 @@ namespace umbral::ui
         if (bounds.isEmpty())
             return;
 
-        const float padX    = static_cast<float> (compactMode ? t::windowPaddingCompact : t::windowPadding);
+        const float padX    = static_cast<float> (t::windowPadding);
         const float centreY = bounds.getCentreY();
         const float btnH    = static_cast<float> (t::controlHeightSmall);
         const float btnY    = centreY - btnH * 0.5f;
@@ -218,48 +198,26 @@ namespace umbral::ui
         rebuildLogoPaths();
 
         const float textLeft  = logoIconArea.getRight() + static_cast<float> (t::headerLogoTextGap);
-        const float boldW     = compactMode ? 84.0f : 88.0f;
-        const float lightW    = compactMode ? 48.0f : 54.0f;
+        const float boldW     = 88.0f;
+        const float lightW    = 54.0f;
         const float logoTextH = static_cast<float> (t::headerLogoIconSize);
         logoBoldTextArea  = { textLeft, centreY - logoTextH * 0.5f, boldW, logoTextH };
         logoLightTextArea = { logoBoldTextArea.getRight(), centreY - logoTextH * 0.5f, lightW, logoTextH };
 
-        // 2. Extremo derecho: boton de alternancia de vista (COMPACT / FULL) y BYPASS (solo en Full)
+        // 2. Extremo derecho: boton BYPASS
         const float rightEdge = bounds.getWidth() - padX;
-        const float toggleW   = static_cast<float> (t::viewToggleWidth);
-        const float toggleH   = static_cast<float> (t::viewToggleHeight);
-        const float toggleX   = rightEdge - toggleW;
-        const float toggleY   = centreY - toggleH * 0.5f;
-        viewModeButton.setBounds (juce::Rectangle<float> (toggleX, toggleY, toggleW, toggleH).toNearestInt());
-
-        if (! compactMode)
-        {
-            const float bypassW = static_cast<float> (t::headerBypassButtonWidth);
-            const float bypassX = toggleX - static_cast<float> (t::headerControlGap) - bypassW;
-            bypassButton.setBounds (juce::Rectangle<float> (bypassX, btnY, bypassW, btnH).toNearestInt());
-        }
-        else
-        {
-            bypassButton.setBounds (0, 0, 0, 0);
-        }
+        const float bypassW   = static_cast<float> (t::headerBypassButtonWidth);
+        const float bypassX   = rightEdge - bypassW;
+        bypassButton.setBounds (juce::Rectangle<float> (bypassX, btnY, bypassW, btnH).toNearestInt());
 
         // 3. Selector segmentado RATE (1/8, 1/4, 1/2, 1/1)
-        const float rateBtnW = static_cast<float> (compactMode ? t::headerRateButtonCompactW : t::headerRateButtonWidth);
+        const float rateBtnW = static_cast<float> (t::headerRateButtonWidth);
         const float rateGap  = static_cast<float> (t::segmentedButtonGap);
 
-        float rateButtonsStartX = 0.0f;
-        if (compactMode)
-        {
-            rateLabelArea = {};
-            rateButtonsStartX = logoLightTextArea.getRight() + static_cast<float> (t::headerControlGap);
-        }
-        else
-        {
-            const float rateLabelW = static_cast<float> (t::headerRateLabelWidth);
-            const float rateLeft   = static_cast<float> (t::windowPadding + t::fullLeftPanelWidth + t::panelGap);
-            rateLabelArea     = { rateLeft, btnY, rateLabelW, btnH };
-            rateButtonsStartX = rateLabelArea.getRight() + static_cast<float> (t::headerControlGap);
-        }
+        const float rateLabelW = static_cast<float> (t::headerRateLabelWidth);
+        const float rateLeft   = static_cast<float> (t::windowPadding + t::fullLeftPanelWidth + t::panelGap);
+        rateLabelArea     = { rateLeft, btnY, rateLabelW, btnH };
+        const float rateButtonsStartX = rateLabelArea.getRight() + static_cast<float> (t::headerControlGap);
 
         for (int i = 0; i < kNumRates; ++i)
         {
@@ -267,19 +225,11 @@ namespace umbral::ui
             rateButtons[static_cast<size_t> (i)].setBounds (juce::Rectangle<float> (bx, btnY, rateBtnW, btnH).toNearestInt());
         }
 
-        // 4. Boton SYNC ubicado junto al selector RATE (o antes del toggle en Compact)
-        const float syncW = static_cast<float> (t::headerSyncButtonWidth);
-        if (compactMode)
-        {
-            const float syncX = toggleX - static_cast<float> (t::headerControlGap) - syncW;
-            syncButton.setBounds (juce::Rectangle<float> (syncX, btnY, syncW, btnH).toNearestInt());
-        }
-        else
-        {
-            const float lastRateRight = rateButtons[static_cast<size_t> (kNumRates - 1)].getBounds().toFloat().getRight();
-            const float syncX         = lastRateRight + static_cast<float> (t::headerControlGap);
-            syncButton.setBounds (juce::Rectangle<float> (syncX, btnY, syncW, btnH).toNearestInt());
-        }
+        // 4. Boton SYNC ubicado junto al selector RATE
+        const float syncW         = static_cast<float> (t::headerSyncButtonWidth);
+        const float lastRateRight = rateButtons[static_cast<size_t> (kNumRates - 1)].getBounds().toFloat().getRight();
+        const float syncX         = lastRateRight + static_cast<float> (t::headerControlGap);
+        syncButton.setBounds (juce::Rectangle<float> (syncX, btnY, syncW, btnH).toNearestInt());
     }
 
     void HeaderBar::paint (juce::Graphics& g)
@@ -305,12 +255,9 @@ namespace umbral::ui
         g.setFont (brandLightFont);
         g.drawText ("duck", logoLightTextArea, juce::Justification::centredLeft, false);
 
-        // 3. Etiqueta secundaria RATE (solo en vista Full)
-        if (! compactMode)
-        {
-            g.setFont (sectionHeaderFont);
-            g.setColour (t::muted);
-            g.drawText ("RATE", rateLabelArea, juce::Justification::centredLeft, false);
-        }
+        // 3. Etiqueta secundaria RATE
+        g.setFont (sectionHeaderFont);
+        g.setColour (t::muted);
+        g.drawText ("RATE", rateLabelArea, juce::Justification::centredLeft, false);
     }
 } // namespace umbral::ui

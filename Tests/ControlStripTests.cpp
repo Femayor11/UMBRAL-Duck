@@ -190,48 +190,14 @@ TEST_CASE ("ControlStrip Full and Compact layout and conditional visibility", "[
     auto& strip    = editor->getControlStrip();
     auto& channels = editor->getChannelsSelector();
 
-    SECTION ("Full mode places ControlStrip on the left and shows all controls")
+    SECTION ("ControlStrip is placed on the left and shows all controls")
     {
-        CHECK_FALSE (editor->isCompactView());
-        CHECK_FALSE (strip.isCompactMode());
-
         CHECK (strip.getBounds() == juce::Rectangle<int> (t::windowPadding,
                                                           t::fullContentTop,
                                                           t::fullLeftPanelWidth,
                                                           t::fullPanelRowHeight));
 
         CHECK (strip.getMixSlider().isVisible());
-        CHECK (strip.getShiftSlider().isVisible());
-        CHECK (strip.getSlopeSlider().isVisible());
-        CHECK (channels.isVisible());
-    }
-
-    SECTION ("Compact mode moves ControlStrip to the right panel and hides SHIFT SLOPE and CHANNELS")
-    {
-        editor->setCompactView (true);
-
-        CHECK (editor->isCompactView());
-        CHECK (strip.isCompactMode());
-
-        const int expectedCompactRightX = t::windowPaddingCompact + t::compactLeftPanelWidth + t::panelGapCompact;
-        CHECK (strip.getBounds() == juce::Rectangle<int> (expectedCompactRightX,
-                                                          t::compactContentTop,
-                                                          t::compactRightPanelWidth,
-                                                          t::compactPanelRowHeight));
-
-        CHECK (strip.getMixSlider().isVisible());
-        CHECK_FALSE (strip.getShiftSlider().isVisible());
-        CHECK_FALSE (strip.getSlopeSlider().isVisible());
-        CHECK_FALSE (channels.isVisible());
-
-        // Volver a Full restaura visibilidad y posicion de todos los controles
-        editor->setCompactView (false);
-
-        CHECK_FALSE (strip.isCompactMode());
-        CHECK (strip.getBounds() == juce::Rectangle<int> (t::windowPadding,
-                                                          t::fullContentTop,
-                                                          t::fullLeftPanelWidth,
-                                                          t::fullPanelRowHeight));
         CHECK (strip.getShiftSlider().isVisible());
         CHECK (strip.getSlopeSlider().isVisible());
         CHECK (channels.isVisible());
@@ -245,7 +211,7 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
 
     UmbralDuckProcessor processor;
 
-    // 1. Primera instancia del editor: modifica parametros y renderiza en Full y Compact
+    // 1. Primera instancia del editor: modifica parametros y renderiza
     {
         std::unique_ptr<juce::AudioProcessorEditor> firstEditorBase (processor.createEditor());
         auto* firstEditor = dynamic_cast<UmbralDuckEditor*> (firstEditorBase.get());
@@ -262,14 +228,6 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
             juce::Graphics g (fullCanvas);
             firstEditor->paintEntireComponent (g, false);
         }
-
-        firstEditor->setCompactView (true);
-        juce::Image compactCanvas (juce::Image::ARGB, firstEditor->getWidth(), firstEditor->getHeight(), true,
-                                   juce::SoftwareImageType {});
-        {
-            juce::Graphics g (compactCanvas);
-            firstEditor->paintEntireComponent (g, false);
-        }
     }
 
     // 2. Segunda instancia tras destruir la primera: sincroniza el estado actual de APVTS sin leaks
@@ -281,7 +239,6 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
         auto& strip    = secondEditor->getControlStrip();
         auto& channels = secondEditor->getChannelsSelector();
 
-        CHECK (secondEditor->isCompactView());
         CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()),   WithinAbs (42.0f, 0.2f));
         CHECK_THAT (static_cast<float> (strip.getShiftSlider().getValue()), WithinAbs (15.0f, 0.2f));
         CHECK_THAT (static_cast<float> (strip.getSlopeSlider().getValue()), WithinAbs (80.0f, 0.2f));
