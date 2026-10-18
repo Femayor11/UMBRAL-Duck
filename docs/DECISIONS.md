@@ -137,3 +137,15 @@
   - La celda 15 de `CurveBankGrid` regenera dinámicamente su miniatura vectorial con trazo discontinuo reflejando los nodos de la curva personalizada.
 - **Persistencia en DAW (`ValueTree`):** serialización y deserialización de la lista de nodos en el sub-árbol `<CustomCurve>` dentro de `apvts.state` en `getStateInformation` y `setStateInformation`, restaurando la curva tanto en memoria del procesador como en el editor gráfico al reabrir el proyecto. Verificado con **85/85 pruebas en verde** en `CTest` (`Release`, `/W4 /WX`).
 
+## 2026-10-18 — Fijación de ventana a 780x540 px, pulido visual e indicador de estado 'ACTIVE'
+- **Fijación de ventana única optimizada (`780 x 540 px`):** se retira el botón `COMPACT` / `FULL` y la lógica de modo compacto en `PluginEditor`, `HeaderBar` y `ControlStrip`. El plugin opera en una ventana única no redimensionable (`setResizable(false, false)`) con todos los módulos principales visibles (`HeaderBar`, `ControlStrip`, `GainResponseView`, `ChannelsSelector`, `LevelMetersComponent`, `CurveBankGrid`).
+- **Pulido de alineación y espaciado:**
+  - En `ControlStrip`: se centra horizontalmente la etiqueta `"MIX"` sobre la perilla principal de mezcla (`Justification::centred`), unificando el criterio con `SHIFT` y `SLOPE`.
+  - En `GainResponseView`: se añade un margen vertical superior de `8 px` entre el encabezado y el marco de la cuadrícula (`plotArea`), dotando de respiración visual al título `"GAIN RESPONSE"`.
+- **Indicador de estado 'ACTIVE' en `GainResponseView`:**
+  - Se sustituye el readout numérico oscilante de dB por una pastilla estática compacta de estado (`~50 x 16 px`, radio `3 px`) en la esquina superior derecha de la cabecera.
+  - El flag atómico lock-free `isProcessing` en `UiStateSnapshot` se alimenta desde `PluginProcessor::processBlock` (`lastResult.mode != TransportMode::Bypass && !params.bypass`).
+  - Estado activo (`isProcessing && !bypass`): texto y borde en `Signal` (`#C9F04B`) sobre fondo `Raised`.
+  - Estado inactivo/detenido (`bypass || !isProcessing`): texto y borde en `Muted` (`#8C8A7E`) sobre fondo `Raised` al 40% de opacidad.
+  - Verificado con **86/86 pruebas en verde** en `CTest` (`Release`, `/W4 /WX`).
+

@@ -19,6 +19,7 @@ namespace umbral
         dsp::BarBeatTick barBeatTick { 1, 1, 1 }; // Compas.Tiempo.Subdivision (1-indexado)
         float inputLevelDb  = -60.0f;             // [-60.0f, 0.0f] dBFS
         float outputLevelDb = -60.0f;             // [-60.0f, 0.0f] dBFS
+        bool isProcessing   = false;              // true si el transporte corre y el ducking modula ganancia
     };
 
     class UiStateSnapshot
@@ -28,6 +29,8 @@ namespace umbral
                        "std::atomic<float> must be lock-free for real-time audio use");
         static_assert (std::atomic<std::uint64_t>::is_always_lock_free,
                        "std::atomic<uint64_t> must be lock-free for real-time audio use");
+        static_assert (std::atomic<bool>::is_always_lock_free,
+                       "std::atomic<bool> must be lock-free for real-time audio use");
 
         static constexpr float kMinDb = -60.0f;
         static constexpr float kMaxDb = 0.0f;
@@ -43,7 +46,8 @@ namespace umbral
             currentGainDb.store (0.0f, std::memory_order_relaxed);
             packedBarBeatTick.store (packBarBeatTick ({ 1, 1, 1 }), std::memory_order_relaxed);
             inputLevelDb.store (kMinDb, std::memory_order_relaxed);
-            outputLevelDb.store (kMinDb, std::memory_order_release);
+            outputLevelDb.store (kMinDb, std::memory_order_relaxed);
+            isProcessing.store (false, std::memory_order_release);
         }
 
         // Publica una instantanea completa desde el hilo de audio (unico escritor) con dB ya calculados.
@@ -51,13 +55,15 @@ namespace umbral
                       float gainDb,
                       dsp::BarBeatTick tick,
                       float inLevelDb,
-                      float outLevelDb) noexcept
+                      float outLevelDb,
+                      bool processing = true) noexcept
         {
             currentPhase.store (sanitizePhase (phase), std::memory_order_relaxed);
             currentGainDb.store (sanitizeDb (gainDb, 0.0f), std::memory_order_relaxed);
             packedBarBeatTick.store (packBarBeatTick (tick), std::memory_order_relaxed);
             inputLevelDb.store (sanitizeDb (inLevelDb, kMinDb), std::memory_order_relaxed);
-            outputLevelDb.store (sanitizeDb (outLevelDb, kMinDb), std::memory_order_release);
+            outputLevelDb.store (sanitizeDb (outLevelDb, kMinDb), std::memory_order_relaxed);
+            isProcessing.store (processing, std::memory_order_release);
         }
 
         // Sobrecarga que recibe la ganancia instantanea lineal G en [0, 1] y la convierte a dB en [-60, 0].
@@ -65,18 +71,20 @@ namespace umbral
                                     float gainLinear,
                                     dsp::BarBeatTick tick,
                                     float inLevelDb,
-                                    float outLevelDb) noexcept
+                                    float outLevelDb,
+                                    bool processing = true) noexcept
         {
             const float clampedLinear = math::clamp01 (math::finiteOr (gainLinear, 1.0f));
             const float gainDb        = math::gainToDb (clampedLinear);
-            publish (phase, gainDb, tick, inLevelDb, outLevelDb);
+            publish (phase, gainDb, tick, inLevelDb, outLevelDb, processing);
         }
 
         // Lee una instantanea coherente desde el hilo de UI.
         [[nodiscard]] UiStateData read() const noexcept
         {
             UiStateData data;
-            data.outputLevelDb = outputLevelDb.load (std::memory_order_acquire);
+            data.isProcessing  = isProcessing.load (std::memory_order_acquire);
+            data.outputLevelDb = outputLevelDb.load (std::memory_order_relaxed);
             data.inputLevelDb  = inputLevelDb.load (std::memory_order_relaxed);
             data.barBeatTick   = unpackBarBeatTick (packedBarBeatTick.load (std::memory_order_relaxed));
             data.currentGainDb = currentGainDb.load (std::memory_order_relaxed);
@@ -107,6 +115,11 @@ namespace umbral
         [[nodiscard]] float getOutputLevelDb() const noexcept
         {
             return outputLevelDb.load (std::memory_order_relaxed);
+        }
+
+        [[nodiscard]] bool getIsProcessing() const noexcept
+        {
+            return isProcessing.load (std::memory_order_relaxed);
         }
 
         [[nodiscard]] static constexpr std::uint64_t packBarBeatTick (dsp::BarBeatTick tick) noexcept
@@ -152,5 +165,6 @@ namespace umbral
         std::atomic<std::uint64_t> packedBarBeatTick { packBarBeatTick ({ 1, 1, 1 }) };
         std::atomic<float> inputLevelDb { kMinDb };
         std::atomic<float> outputLevelDb { kMinDb };
+        std::atomic<bool> isProcessing { false };
     };
 }

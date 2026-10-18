@@ -91,6 +91,12 @@ namespace umbral::ui
         auto inner = panelBounds.reduced (static_cast<float> (tokens::panelPadding));
         headerArea = inner.removeFromTop (static_cast<float> (tokens::graphHeaderHeight));
 
+        const float pillW = 50.0f;
+        const float pillH = 16.0f;
+        activePillArea = juce::Rectangle<float> (headerArea.getRight() - pillW,
+                                                headerArea.getCentreY() - pillH * 0.5f,
+                                                pillW, pillH);
+
         // Separacion vertical superior para que el titulo GAIN RESPONSE respire sobre el grafico
         inner.removeFromTop (8.0f);
 
@@ -147,6 +153,14 @@ namespace umbral::ui
             changed = true;
         }
 
+        const bool bypass = loadOr (parameters.bypass, 0.0f) >= 0.5f;
+        const bool newActive = state.isProcessing && ! bypass;
+        if (newActive != isDuckingActive)
+        {
+            isDuckingActive = newActive;
+            changed = true;
+        }
+
         if (! (state.barBeatTick == lastTick) || barBeatText.isEmpty())
         {
             lastTick = state.barBeatTick;
@@ -174,6 +188,24 @@ namespace umbral::ui
         g.setFont (headerFont);
         g.setColour (tokens::muted);
         g.drawText (headerLabel, headerArea, juce::Justification::centredLeft, false);
+
+        // Pastilla de estado ACTIVE a la derecha
+        if (! activePillArea.isEmpty())
+        {
+            const auto bgColour     = isDuckingActive ? tokens::raised : tokens::raised.withAlpha (0.4f);
+            const auto strokeColour = isDuckingActive ? tokens::signal : tokens::muted;
+            const auto textColour   = isDuckingActive ? tokens::signal : tokens::muted;
+
+            g.setColour (bgColour);
+            g.fillRoundedRectangle (activePillArea, 3.0f);
+
+            g.setColour (strokeColour);
+            g.drawRoundedRectangle (activePillArea.reduced (tokens::borderWidth * 0.5f), 3.0f, tokens::borderWidth);
+
+            g.setFont (headerFont);
+            g.setColour (textColour);
+            g.drawText ("ACTIVE", activePillArea, juce::Justification::centred, false);
+        }
 
         if (plotArea.isEmpty())
             return;

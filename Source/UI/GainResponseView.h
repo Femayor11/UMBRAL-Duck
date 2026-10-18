@@ -22,10 +22,11 @@ namespace umbral::ui
         // Un puntero nulo usa el valor por defecto del parametro.
         struct ParameterSource
         {
-            const std::atomic<float>* curve = nullptr;
-            const std::atomic<float>* mix   = nullptr;
-            const std::atomic<float>* shift = nullptr;
-            const std::atomic<float>* slope = nullptr;
+            const std::atomic<float>* curve  = nullptr;
+            const std::atomic<float>* mix    = nullptr;
+            const std::atomic<float>* shift  = nullptr;
+            const std::atomic<float>* slope  = nullptr;
+            const std::atomic<float>* bypass = nullptr;
         };
 
         static constexpr int refreshRateHz = 60;
@@ -58,6 +59,8 @@ namespace umbral::ui
         void refresh();
 
         [[nodiscard]] juce::Rectangle<float> getPlotArea() const noexcept { return plotArea; }
+        [[nodiscard]] juce::Rectangle<float> getActivePillArea() const noexcept { return activePillArea; }
+        [[nodiscard]] bool isActiveStatus() const noexcept { return isDuckingActive; }
         [[nodiscard]] const juce::Path& getCurvePath() const noexcept { return curvePath; }
         [[nodiscard]] const juce::Path& getFillPath() const noexcept { return fillPath; }
         [[nodiscard]] const juce::String& getBarBeatText() const noexcept { return barBeatText; }
@@ -87,12 +90,14 @@ namespace umbral::ui
         // Geometria
         juce::Rectangle<float> panelBounds;
         juce::Rectangle<float> headerArea;
+        juce::Rectangle<float> activePillArea;
         juce::Rectangle<float> plotArea;
         bool barPillVisible = true;
 
         // Estado cacheado (solo se modifica en refresh()/resized())
         geometry::CurveParams curveParams;
         float playheadPhase = 0.0f;
+        bool isDuckingActive = false;
         dsp::BarBeatTick lastTick { 1, 1, 1 };
         juce::String barBeatText;
         juce::Path curvePath;

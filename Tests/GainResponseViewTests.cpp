@@ -280,6 +280,66 @@ TEST_CASE ("GainResponseView refresh reads the snapshot and parameters", "[ui][g
     }
 }
 
+TEST_CASE ("GainResponseView ACTIVE status pill geometry and state transitions", "[ui][gainresponse][status-pill]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+
+    umbral::UiStateSnapshot snapshot;
+    std::atomic<float> curve { 3.0f };
+    std::atomic<float> mix { 70.0f };
+    std::atomic<float> shift { 0.0f };
+    std::atomic<float> slope { 50.0f };
+    std::atomic<float> bypass { 0.0f };
+
+    umbral::ui::GainResponseView view (snapshot, { &curve, &mix, &shift, &slope, &bypass });
+    view.setBounds (0, 0, 408, 290);
+
+    SECTION ("Pill geometry is compact with 3px corner radius in the top right corner")
+    {
+        const auto pillArea = view.getActivePillArea();
+        CHECK_THAT (pillArea.getWidth(), WithinAbs (50.0f, 1.0e-3f));
+        CHECK_THAT (pillArea.getHeight(), WithinAbs (16.0f, 1.0e-3f));
+        CHECK (pillArea.getRight() <= view.getWidth() - umbral::tokens::panelPadding + 1.0f);
+        CHECK (pillArea.getY() >= static_cast<float> (umbral::tokens::panelPadding));
+    }
+
+    SECTION ("Active state when transport is running and bypass is off")
+    {
+        snapshot.publish (0.5f, -6.0f, { 1, 2, 3 }, -12.0f, -6.0f, true);
+        bypass.store (0.0f);
+        view.refresh();
+
+        CHECK (view.isActiveStatus());
+
+        // Render offscreen in active state: contains Signal pixels from ACTIVE pill and curve
+        juce::Image image (juce::Image::ARGB, 408, 290, true, juce::SoftwareImageType {});
+        render (view, image);
+        CHECK (countPixels (image, umbral::tokens::signal) > 0);
+    }
+
+    SECTION ("Inactive state when bypass is enabled")
+    {
+        snapshot.publish (0.5f, -6.0f, { 1, 2, 3 }, -12.0f, -6.0f, true);
+        bypass.store (1.0f);
+        view.refresh();
+
+        CHECK_FALSE (view.isActiveStatus());
+
+        juce::Image image (juce::Image::ARGB, 408, 290, true, juce::SoftwareImageType {});
+        render (view, image);
+        SUCCEED();
+    }
+
+    SECTION ("Inactive state when transport is stopped")
+    {
+        snapshot.publish (0.0f, 0.0f, { 1, 1, 1 }, -60.0f, -60.0f, false);
+        bypass.store (0.0f);
+        view.refresh();
+
+        CHECK_FALSE (view.isActiveStatus());
+    }
+}
+
 TEST_CASE ("GainResponseView renders offscreen without hanging", "[ui][gainresponse]")
 {
     juce::ScopedJuceInitialiser_GUI gui;

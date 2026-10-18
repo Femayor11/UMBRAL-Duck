@@ -201,7 +201,8 @@ void UmbralDuckProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce::
     // T-08: Medicion Peak de salida (OUT) y publicacion atomica lock-free para la UI.
     const float outLevelDb        = levelMeterSource.processOutput (buffer.getArrayOfReadPointers(), numChannels, numSamples);
     const float currentGainLinear = duckingEngine.getGainSmoother().getCurrentValue();
-    uiSnapshot.publishFromLinearGain (lastResult.endPhase, currentGainLinear, lastResult.tick, inLevelDb, outLevelDb);
+    const bool isDuckingActive    = (lastResult.mode != umbral::dsp::TransportMode::Bypass) && ! params.bypass;
+    uiSnapshot.publishFromLinearGain (lastResult.endPhase, currentGainLinear, lastResult.tick, inLevelDb, outLevelDb, isDuckingActive);
 }
 
 bool UmbralDuckProcessor::isCompactView() const noexcept

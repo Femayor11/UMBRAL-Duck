@@ -9,10 +9,11 @@ namespace
         auto& apvts = processor.getAPVTS();
 
         umbral::ui::GainResponseView::ParameterSource source;
-        source.curve = apvts.getRawParameterValue (umbral::params::rawIDs::curve);
-        source.mix   = apvts.getRawParameterValue (umbral::params::rawIDs::mix);
-        source.shift = apvts.getRawParameterValue (umbral::params::rawIDs::shift);
-        source.slope = apvts.getRawParameterValue (umbral::params::rawIDs::slope);
+        source.curve  = apvts.getRawParameterValue (umbral::params::rawIDs::curve);
+        source.mix    = apvts.getRawParameterValue (umbral::params::rawIDs::mix);
+        source.shift  = apvts.getRawParameterValue (umbral::params::rawIDs::shift);
+        source.slope  = apvts.getRawParameterValue (umbral::params::rawIDs::slope);
+        source.bypass = apvts.getRawParameterValue (umbral::params::rawIDs::bypass);
         return source;
     }
 }
