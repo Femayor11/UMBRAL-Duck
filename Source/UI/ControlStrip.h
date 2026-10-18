@@ -42,6 +42,37 @@ namespace umbral::ui
         JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ChannelsSelector)
     };
 
+    // Control giratorio personalizado que soporta Host Context Menu (VST3) al hacer
+    // clic derecho para exponer 'Create automation clip', enlace a controladores y
+    // fallback 'Reset to default'.
+    class ParameterKnobSlider : public juce::Slider
+    {
+    public:
+        ParameterKnobSlider (juce::RangedAudioParameter* param = nullptr,
+                             juce::AudioProcessorEditor* editorToUse = nullptr);
+        ~ParameterKnobSlider() override = default;
+
+        void setAssociatedParameter (juce::RangedAudioParameter* param) noexcept { parameter = param; }
+        [[nodiscard]] juce::RangedAudioParameter* getAssociatedParameter() const noexcept { return parameter; }
+
+        void setEditor (juce::AudioProcessorEditor* editorToUse) noexcept { editor = editorToUse; }
+        [[nodiscard]] juce::AudioProcessorEditor* getEditor() const noexcept;
+
+        void mouseDown (const juce::MouseEvent& e) override;
+        void mouseDrag (const juce::MouseEvent& e) override;
+        void mouseUp (const juce::MouseEvent& e) override;
+
+        [[nodiscard]] juce::PopupMenu buildContextMenu() const;
+        void showContextMenu();
+        void resetToDefault();
+
+    private:
+        juce::RangedAudioParameter* parameter = nullptr;
+        juce::AudioProcessorEditor* editor = nullptr;
+
+        JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (ParameterKnobSlider)
+    };
+
     // Panel de controles MIX, SHIFT y SLOPE (T-12, docs/DESIGN.md §5 y §6).
     // En vista Full (193 x 368 px) se ubica a la izquierda mostrando MIX arriba y SHIFT/SLOPE debajo.
     // En vista Compact (160 x 279 px) se ubica a la derecha mostrando MIX.
@@ -50,7 +81,8 @@ namespace umbral::ui
     public:
         using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
 
-        explicit ControlStrip (juce::AudioProcessorValueTreeState& apvts);
+        explicit ControlStrip (juce::AudioProcessorValueTreeState& apvts,
+                               juce::AudioProcessorEditor* editor = nullptr);
         ~ControlStrip() override;
 
         void paint (juce::Graphics&) override;
@@ -61,12 +93,12 @@ namespace umbral::ui
 
         [[nodiscard]] static juce::String formatPercentage (double value);
 
-        [[nodiscard]] juce::Slider& getMixSlider() noexcept { return mixSlider; }
-        [[nodiscard]] const juce::Slider& getMixSlider() const noexcept { return mixSlider; }
-        [[nodiscard]] juce::Slider& getShiftSlider() noexcept { return shiftSlider; }
-        [[nodiscard]] const juce::Slider& getShiftSlider() const noexcept { return shiftSlider; }
-        [[nodiscard]] juce::Slider& getSlopeSlider() noexcept { return slopeSlider; }
-        [[nodiscard]] const juce::Slider& getSlopeSlider() const noexcept { return slopeSlider; }
+        [[nodiscard]] ParameterKnobSlider& getMixSlider() noexcept { return mixSlider; }
+        [[nodiscard]] const ParameterKnobSlider& getMixSlider() const noexcept { return mixSlider; }
+        [[nodiscard]] ParameterKnobSlider& getShiftSlider() noexcept { return shiftSlider; }
+        [[nodiscard]] const ParameterKnobSlider& getShiftSlider() const noexcept { return shiftSlider; }
+        [[nodiscard]] ParameterKnobSlider& getSlopeSlider() noexcept { return slopeSlider; }
+        [[nodiscard]] const ParameterKnobSlider& getSlopeSlider() const noexcept { return slopeSlider; }
 
         [[nodiscard]] const juce::String& getMixReadoutText() const noexcept { return mixReadoutText; }
         [[nodiscard]] const juce::String& getShiftReadoutText() const noexcept { return shiftReadoutText; }
@@ -95,9 +127,9 @@ namespace umbral::ui
         juce::String shiftReadoutText;
         juce::String slopeReadoutText;
 
-        juce::Slider mixSlider;
-        juce::Slider shiftSlider;
-        juce::Slider slopeSlider;
+        ParameterKnobSlider mixSlider;
+        ParameterKnobSlider shiftSlider;
+        ParameterKnobSlider slopeSlider;
 
         // Declarados despues de los controles UI para garantizar orden de destruccion seguro sin leaks.
         std::unique_ptr<SliderAttachment> mixAttachment;

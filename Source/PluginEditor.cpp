@@ -21,7 +21,7 @@ UmbralDuckEditor::UmbralDuckEditor (UmbralDuckProcessor& p)
     : AudioProcessorEditor (&p),
       processorRef (p),
       headerBar (p.getAPVTS(), [this]() { toggleViewMode(); }),
-      controlStrip (p.getAPVTS()),
+      controlStrip (p.getAPVTS(), this),
       gainResponseView (p.getUiSnapshot(), makeParameterSource (p)),
       levelMeters (p.getUiSnapshot()),
       channelsSelector (p.getAPVTS()),

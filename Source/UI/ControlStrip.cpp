@@ -90,18 +90,123 @@ namespace umbral::ui
     }
 
     // =========================================================================
+    // ParameterKnobSlider
+    // =========================================================================
+
+    ParameterKnobSlider::ParameterKnobSlider (juce::RangedAudioParameter* param,
+                                              juce::AudioProcessorEditor* editorToUse)
+        : parameter (param),
+          editor (editorToUse)
+    {
+    }
+
+    juce::AudioProcessorEditor* ParameterKnobSlider::getEditor() const noexcept
+    {
+        if (editor != nullptr)
+            return editor;
+        return findParentComponentOfClass<juce::AudioProcessorEditor>();
+    }
+
+    void ParameterKnobSlider::resetToDefault()
+    {
+        if (parameter != nullptr)
+        {
+            parameter->beginChangeGesture();
+            parameter->setValueNotifyingHost (parameter->getDefaultValue());
+            parameter->endChangeGesture();
+        }
+    }
+
+    juce::PopupMenu ParameterKnobSlider::buildContextMenu() const
+    {
+        juce::PopupMenu menu;
+
+        if (auto* ed = getEditor())
+        {
+            if (auto* hostContext = ed->getHostContext())
+            {
+                if (parameter != nullptr)
+                {
+                    if (auto hostMenu = hostContext->getContextMenuForParameter (parameter))
+                    {
+                        menu = hostMenu->getEquivalentPopupMenu();
+                    }
+                }
+            }
+        }
+
+        if (menu.getNumItems() > 0)
+            menu.addSeparator();
+
+        menu.addItem ("Reset to default", [safeParam = parameter]()
+        {
+            if (safeParam != nullptr)
+            {
+                safeParam->beginChangeGesture();
+                safeParam->setValueNotifyingHost (safeParam->getDefaultValue());
+                safeParam->endChangeGesture();
+            }
+        });
+
+        return menu;
+    }
+
+    void ParameterKnobSlider::showContextMenu()
+    {
+        auto menu = buildContextMenu();
+        menu.showMenuAsync (juce::PopupMenu::Options().withTargetComponent (this)
+                                                      .withMousePosition());
+    }
+
+    void ParameterKnobSlider::mouseDown (const juce::MouseEvent& e)
+    {
+        if (e.mods.isPopupMenu())
+        {
+            showContextMenu();
+            return;
+        }
+
+        juce::Slider::mouseDown (e);
+    }
+
+    void ParameterKnobSlider::mouseDrag (const juce::MouseEvent& e)
+    {
+        if (e.mods.isPopupMenu())
+            return;
+
+        juce::Slider::mouseDrag (e);
+    }
+
+    void ParameterKnobSlider::mouseUp (const juce::MouseEvent& e)
+    {
+        if (e.mods.isPopupMenu())
+            return;
+
+        juce::Slider::mouseUp (e);
+    }
+
+    // =========================================================================
     // ControlStrip
     // =========================================================================
 
-    ControlStrip::ControlStrip (juce::AudioProcessorValueTreeState& apvts)
+    ControlStrip::ControlStrip (juce::AudioProcessorValueTreeState& apvts,
+                               juce::AudioProcessorEditor* editor)
         : sectionHeaderFont (UmbralLookAndFeel::getSectionHeaderFont()),
           mixReadoutFont (UmbralLookAndFeel::getMixReadoutFont()),
           secondaryReadoutFont (UmbralLookAndFeel::getMidValueFont())
     {
         setOpaque (false);
 
+        mixSlider.setAssociatedParameter (apvts.getParameter (params::rawIDs::mix));
+        mixSlider.setEditor (editor);
         configureRotaryKnob (mixSlider);
+
+        shiftSlider.setAssociatedParameter (apvts.getParameter (params::rawIDs::shift));
+        shiftSlider.setEditor (editor);
         configureRotaryKnob (shiftSlider);
+
+        slopeSlider.setAssociatedParameter (apvts.getParameter (params::rawIDs::slope));
+        slopeSlider.setEditor (editor);
         configureRotaryKnob (slopeSlider);
 
         mixSlider.onValueChange   = [this]() { updateReadouts(); };

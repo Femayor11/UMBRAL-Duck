@@ -7,8 +7,10 @@
 #include "UI/ControlStrip.h"
 #include "UI/DesignTokens.h"
 
+#include <functional>
 #include <limits>
 #include <memory>
+#include <vector>
 
 using Catch::Matchers::WithinAbs;
 
@@ -287,5 +289,179 @@ TEST_CASE ("ControlStrip lifecycle and editor reopen without memory leaks", "[ui
         CHECK (channels.getSelectedChannelIndex() == 1);
         CHECK (channels.getMonoButton().getToggleState());
         CHECK (juce::roundToInt (processor.getAPVTS().getRawParameterValue (ids::channels)->load()) == 1);
+    }
+}
+
+namespace
+{
+    class MockHostProvidedContextMenu final : public juce::HostProvidedContextMenu
+    {
+    public:
+        juce::PopupMenu getEquivalentPopupMenu() const override
+        {
+            juce::PopupMenu menu;
+            menu.addItem ("DAW Create automation clip", [] {});
+            return menu;
+        }
+
+        void showNativeMenu (juce::Point<int>) const override {}
+    };
+
+    class MockEditorHostContext final : public juce::AudioProcessorEditorHostContext
+    {
+    public:
+        std::unique_ptr<juce::HostProvidedContextMenu> getContextMenuForParameter (const juce::AudioProcessorParameter*) const override
+        {
+            return std::make_unique<MockHostProvidedContextMenu>();
+        }
+    };
+
+    struct TestMenuItem
+    {
+        juce::String text;
+        bool isSeparator = false;
+        std::function<void()> action;
+    };
+
+    std::vector<TestMenuItem> extractMenuItems (const juce::PopupMenu& menu)
+    {
+        std::vector<TestMenuItem> result;
+        juce::PopupMenu::MenuItemIterator it (menu, false);
+        while (it.next())
+        {
+            const auto& item = it.getItem();
+            TestMenuItem parsed;
+            parsed.text = item.text;
+            parsed.isSeparator = item.isSeparator;
+            parsed.action = item.action;
+            result.push_back (parsed);
+        }
+        return result;
+    }
+
+    juce::MouseEvent makeMouseEvent (juce::Component& comp,
+                                     juce::ModifierKeys mods,
+                                     juce::Point<float> pos = { 10.0f, 10.0f })
+    {
+        const auto now = juce::Time::getCurrentTime();
+        return juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(),
+                                 pos,
+                                 mods,
+                                 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                 &comp, &comp,
+                                 now,
+                                 pos,
+                                 now,
+                                 1,
+                                 false);
+    }
+
+    juce::MouseEvent makeMouseDoubleClickEvent (juce::Component& comp,
+                                                juce::ModifierKeys mods,
+                                                juce::Point<float> pos = { 10.0f, 10.0f })
+    {
+        const auto now = juce::Time::getCurrentTime();
+        return juce::MouseEvent (juce::Desktop::getInstance().getMainMouseSource(),
+                                 pos,
+                                 mods,
+                                 0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+                                 &comp, &comp,
+                                 now,
+                                 pos,
+                                 now,
+                                 2,
+                                 false);
+    }
+}
+
+TEST_CASE ("ParameterKnobSlider context menu and mouse interaction", "[ui][controls][vst3][context-menu]")
+{
+    juce::ScopedJuceInitialiser_GUI gui;
+    namespace ids = umbral::params::rawIDs;
+
+    UmbralDuckProcessor processor;
+    std::unique_ptr<juce::AudioProcessorEditor> baseEditor (processor.createEditor());
+    auto* editor = dynamic_cast<UmbralDuckEditor*> (baseEditor.get());
+    REQUIRE (editor != nullptr);
+
+    auto& strip = editor->getControlStrip();
+    auto& apvts = processor.getAPVTS();
+
+    SECTION ("Standalone fallback menu provides Reset to default and restores APVTS parameter")
+    {
+        // 1. Verificar fallback en MIX
+        strip.getMixSlider().setValue (20.0, juce::sendNotificationSync);
+        CHECK_THAT (apvts.getRawParameterValue (ids::mix)->load(), WithinAbs (20.0f, 0.2f));
+
+        const auto mixMenu = strip.getMixSlider().buildContextMenu();
+        const auto mixItems = extractMenuItems (mixMenu);
+        REQUIRE (mixItems.size() == 1);
+        CHECK (mixItems[0].text == "Reset to default");
+        CHECK_FALSE (mixItems[0].isSeparator);
+        REQUIRE (mixItems[0].action != nullptr);
+
+        mixItems[0].action();
+        CHECK_THAT (apvts.getRawParameterValue (ids::mix)->load(), WithinAbs (70.0f, 0.2f));
+        CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()), WithinAbs (70.0f, 0.2f));
+
+        // 2. Verificar fallback en SHIFT
+        strip.getShiftSlider().setValue (45.0, juce::sendNotificationSync);
+        const auto shiftMenu = strip.getShiftSlider().buildContextMenu();
+        const auto shiftItems = extractMenuItems (shiftMenu);
+        REQUIRE (shiftItems.size() == 1);
+        CHECK (shiftItems[0].text == "Reset to default");
+        REQUIRE (shiftItems[0].action != nullptr);
+        shiftItems[0].action();
+        CHECK_THAT (apvts.getRawParameterValue (ids::shift)->load(), WithinAbs (0.0f, 0.2f));
+
+        // 3. Verificar fallback en SLOPE
+        strip.getSlopeSlider().setValue (80.0, juce::sendNotificationSync);
+        const auto slopeMenu = strip.getSlopeSlider().buildContextMenu();
+        const auto slopeItems = extractMenuItems (slopeMenu);
+        REQUIRE (slopeItems.size() == 1);
+        CHECK (slopeItems[0].text == "Reset to default");
+        REQUIRE (slopeItems[0].action != nullptr);
+        slopeItems[0].action();
+        CHECK_THAT (apvts.getRawParameterValue (ids::slope)->load(), WithinAbs (50.0f, 0.2f));
+    }
+
+    SECTION ("Host provided context menu merges DAW options with local Reset to default")
+    {
+        MockEditorHostContext mockContext;
+        editor->setHostContext (&mockContext);
+
+        const auto mixMenu = strip.getMixSlider().buildContextMenu();
+        const auto mixItems = extractMenuItems (mixMenu);
+
+        REQUIRE (mixItems.size() == 3);
+        CHECK (mixItems[0].text == "DAW Create automation clip");
+        CHECK (mixItems[1].isSeparator);
+        CHECK (mixItems[2].text == "Reset to default");
+
+        editor->setHostContext (nullptr);
+    }
+
+    SECTION ("Right click mouse events do not alter slider value or initiate drag gestures")
+    {
+        strip.getMixSlider().setValue (40.0, juce::sendNotificationSync);
+        CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()), WithinAbs (40.0f, 0.2f));
+
+        // Simular clic derecho, arrastre y liberacion con boton secundario
+        strip.getMixSlider().mouseDown (makeMouseEvent (strip.getMixSlider(), juce::ModifierKeys::rightButtonModifier));
+        strip.getMixSlider().mouseDrag (makeMouseEvent (strip.getMixSlider(), juce::ModifierKeys::rightButtonModifier, { 50.0f, 150.0f }));
+        strip.getMixSlider().mouseUp   (makeMouseEvent (strip.getMixSlider(), juce::ModifierKeys::rightButtonModifier));
+
+        CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()), WithinAbs (40.0f, 0.2f));
+        CHECK_THAT (apvts.getRawParameterValue (ids::mix)->load(), WithinAbs (40.0f, 0.2f));
+    }
+
+    SECTION ("Left click double click resets value to default")
+    {
+        strip.getMixSlider().setValue (15.0, juce::sendNotificationSync);
+        CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()), WithinAbs (15.0f, 0.2f));
+
+        strip.getMixSlider().mouseDoubleClick (makeMouseDoubleClickEvent (strip.getMixSlider(), juce::ModifierKeys::leftButtonModifier));
+        CHECK_THAT (static_cast<float> (strip.getMixSlider().getValue()), WithinAbs (70.0f, 0.2f));
+        CHECK_THAT (apvts.getRawParameterValue (ids::mix)->load(), WithinAbs (70.0f, 0.2f));
     }
 }
