@@ -3,6 +3,7 @@
 
 #include "Common/MathUtils.h"
 #include "DSP/CurveBank.h"
+#include "DSP/DuckingEngine.h"
 
 #include <array>
 #include <cmath>
@@ -381,4 +382,33 @@ TEST_CASE ("CurveBank: kNaN/kInf usan fallbacks seguros", "[dsp][curves]")
     CHECK (dsp::evaluate (0, 0.6f, kInf, 0.5f) == dsp::evaluate (0, 0.6f, 0.0f, 0.5f));
     CHECK (dsp::evaluate (0, 0.235f, 0.0f, kNaN) == dsp::evaluate (0, 0.235f, 0.0f, 0.5f));
     CHECK (dsp::evaluateNodes (dsp::getNodes (0), kNaN, kNaN) == dsp::evaluateNodes (dsp::getNodes (0), 0.0f, 0.5f));
+}
+
+TEST_CASE ("DuckingEngine: computeAcousticGain achieves periodic continuity across phi 1.0 and 0.0", "[dsp][acoustic]")
+{
+    for (int c = 0; c < dsp::numCurves; ++c)
+    {
+        for (float shift : { 0.0f, 0.25f, 0.5f })
+        {
+            for (float slope : { 0.0f, 0.5f, 1.0f })
+            {
+                for (float mix : { 0.0f, 0.7f, 1.0f })
+                {
+                    const float g0 = dsp::DuckingEngine::computeAcousticGain (c, 0.0f, shift, slope, mix);
+                    const float g1 = dsp::DuckingEngine::computeAcousticGain (c, 1.0f, shift, slope, mix);
+                    CHECK_THAT (g1, WithinAbs (g0, 1.0e-5f));
+
+                    // Before pre-release window (phi <= 0.97), matches nominal computeGain
+                    const float gMid = dsp::DuckingEngine::computeAcousticGain (c, 0.5f, shift, slope, mix);
+                    const float gNom = dsp::DuckingEngine::computeGain (c, 0.5f, shift, slope, mix);
+                    CHECK_THAT (gMid, WithinAbs (gNom, 1.0e-6f));
+
+                    // At boundary 0.97 matches computeGain
+                    const float gBoundA = dsp::DuckingEngine::computeAcousticGain (c, 0.97f, shift, slope, mix);
+                    const float gBoundN = dsp::DuckingEngine::computeGain (c, 0.97f, shift, slope, mix);
+                    CHECK_THAT (gBoundA, WithinAbs (gBoundN, 1.0e-6f));
+                }
+            }
+        }
+    }
 }

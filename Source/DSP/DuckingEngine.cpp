@@ -9,18 +9,21 @@ namespace umbral::dsp
         gainSmoother.prepare (sampleRate, smoothingTimeMs);
         gainSmoother.resetToNextSample();
         lastShiftedPhase = -1.0f;
+        lastRawGain      = -1.0f;
     }
 
     void DuckingEngine::reset() noexcept
     {
         gainSmoother.resetToNextSample();
         lastShiftedPhase = -1.0f;
+        lastRawGain      = -1.0f;
     }
 
     void DuckingEngine::triggerAntiPopRamp() noexcept
     {
         gainSmoother.triggerAntiPopRamp();
         lastShiftedPhase = -1.0f;
+        lastRawGain      = -1.0f;
     }
 
     float DuckingEngine::computeGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept
@@ -29,24 +32,57 @@ namespace umbral::dsp
         return math::gainFromCurve (curveValue, mix);
     }
 
+    float DuckingEngine::computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept
+    {
+        float safePhi = math::fallbackPhase;
+        if (std::isfinite (phi))
+        {
+            if (phi == 1.0f)
+                safePhi = 1.0f;
+            else
+                safePhi = math::frac (phi);
+        }
+
+        const float nominalGain = computeGain (curveIndex, safePhi, shift, slope, mix);
+        if (safePhi <= kPreReleaseStartPhi)
+            return nominalGain;
+
+        const float nextStartGain = computeGain (curveIndex, 0.0f, shift, slope, mix);
+        const float u = math::clamp01 ((safePhi - kPreReleaseStartPhi) / (1.0f - kPreReleaseStartPhi));
+        const float w = math::smoothstep (u);
+        return math::clamp01 (math::lerp (nominalGain, nextStartGain, w));
+    }
+
     float DuckingEngine::evaluateAndSmoothSample (const DuckingParameters& params, float phi) noexcept
     {
         const float safePhi = math::frac (math::finiteOr (phi, math::fallbackPhase));
-        const float rawGain = computeGain (params.curveIndex, phi, params.shift, params.slope, params.mix);
+        const float rawGain = computeAcousticGain (params.curveIndex, safePhi, params.shift, params.slope, params.mix);
 
-        if (lastShiftedPhase >= 0.0f && safePhi < lastShiftedPhase - 0.5f)
+        if (lastRawGain >= 0.0f && std::abs (rawGain - lastRawGain) > kStepThreshold)
         {
-            if (std::abs (rawGain - gainSmoother.getCurrentValue()) > 1.0e-3f)
+            gainSmoother.triggerAntiPopRamp();
+        }
+        else if (lastShiftedPhase >= 0.0f && safePhi < lastShiftedPhase - 0.5f)
+        {
+            if (std::abs (rawGain - gainSmoother.getCurrentValue()) > kStepThreshold)
                 gainSmoother.triggerAntiPopRamp();
         }
 
         lastShiftedPhase = safePhi;
+        lastRawGain      = rawGain;
         return gainSmoother.processSample (rawGain);
     }
 
     void DuckingEngine::processBypassRamp (float* const* channels, int numChannels, int numSamples) noexcept
     {
+        if (lastShiftedPhase >= 0.0f)
+        {
+            if (std::abs (1.0f - gainSmoother.getCurrentValue()) > 1.0e-3f)
+                gainSmoother.triggerAntiPopRamp();
+        }
+
         lastShiftedPhase = -1.0f;
+        lastRawGain      = 1.0f;
 
         if (! gainSmoother.isPrimed())
         {

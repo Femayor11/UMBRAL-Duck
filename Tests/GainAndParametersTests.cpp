@@ -341,7 +341,7 @@ TEST_CASE ("DuckingEngine channel processing and bypass behaviors", "[dsp][chann
 
         for (int i = 0; i < numSamples; ++i)
         {
-            const float expectedG = DuckingEngine::computeGain (3, phases[static_cast<size_t> (i)], 0.0f, 0.5f, 1.0f);
+            const float expectedG = DuckingEngine::computeAcousticGain (3, phases[static_cast<size_t> (i)], 0.0f, 0.5f, 1.0f);
             REQUIRE_THAT (chL[static_cast<size_t> (i)], WithinAbs (expectedG, 1e-5f));
             REQUIRE_THAT (chR[static_cast<size_t> (i)], WithinAbs (expectedG, 1e-5f));
         }

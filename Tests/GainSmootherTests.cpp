@@ -47,11 +47,11 @@ namespace
     }
 }
 
-TEST_CASE ("GainSmoother: settling time is within 1 ms to 2 ms across sample rates", "[dsp][smoother]")
+TEST_CASE ("GainSmoother: settling time is within 2 ms to 3 ms across sample rates", "[dsp][smoother]")
 {
     const double sampleRates[] = { 44100.0, 48000.0, 88200.0, 96000.0, 192000.0 };
 
-    SECTION ("Default 1.5 ms configuration settles to 99 percent between 1 ms and 2 ms")
+    SECTION ("Default 2.5 ms configuration settles to 99 percent between 2 ms and 3 ms")
     {
         for (const double fs : sampleRates)
         {
@@ -73,8 +73,8 @@ TEST_CASE ("GainSmoother: settling time is within 1 ms to 2 ms across sample rat
 
             REQUIRE (samplesTo99Rise > 0);
             const double riseTimeMs = (static_cast<double> (samplesTo99Rise) / fs) * 1000.0;
-            CHECK (riseTimeMs >= 1.0);
-            CHECK (riseTimeMs <= 2.0);
+            CHECK (riseTimeMs >= 2.0);
+            CHECK (riseTimeMs <= 3.0);
 
             smoother.reset (1.0f);
             int samplesTo99Fall = -1;
@@ -90,15 +90,15 @@ TEST_CASE ("GainSmoother: settling time is within 1 ms to 2 ms across sample rat
 
             REQUIRE (samplesTo99Fall > 0);
             const double fallTimeMs = (static_cast<double> (samplesTo99Fall) / fs) * 1000.0;
-            CHECK (fallTimeMs >= 1.0);
-            CHECK (fallTimeMs <= 2.0);
+            CHECK (fallTimeMs >= 2.0);
+            CHECK (fallTimeMs <= 3.0);
             CHECK (std::abs (samplesTo99Fall - samplesTo99Rise) <= 1);
         }
     }
 
-    SECTION ("Explicit 1.0 ms and 2.0 ms bounds match target settling time")
+    SECTION ("Explicit 1.0 ms and 2.5 ms bounds match target settling time")
     {
-        for (const float targetMs : { 1.0f, 2.0f })
+        for (const float targetMs : { 1.0f, 2.5f })
         {
             const double fs = 48000.0;
             dsp::GainSmoother smoother;
@@ -224,8 +224,8 @@ TEST_CASE ("GainSmoother: maximum consecutive sample delta stays below threshold
             }
 
             CHECK_THAT (maxDelta, WithinAbs (smoother.getAlpha(), 1.0e-6f));
-            // At 44.1 kHz with 1.5 ms 99% settling, alpha is ~0.0672 (<= 0.08)
-            const float expectedBound = static_cast<float> (1.0 - std::exp (-4.605170186 / (fs * 0.001))) + 1.0e-4f;
+            // At 44.1 kHz with 2.5 ms 99% settling, alpha is ~0.0409 (<= 0.05)
+            const float expectedBound = static_cast<float> (1.0 - std::exp (-4.605170186 / (fs * 0.002))) + 1.0e-4f;
             CHECK (maxDelta <= expectedBound);
         }
     }
@@ -394,12 +394,9 @@ TEST_CASE ("DuckingEngine: cyclic wrap across phi 1.0 to 0.0 maintains C1 contin
     ctx.sampleRate  = kFs;
     dsp::fillBlockPhases (ctx, dsp::RateDivision::Quarter, phases);
 
-    // Verifica para todas las curvas (excluyendo 11 Step que tiene un escalon interno en 0.5)
+    // Verifica para todas las 16 curvas del banco
     for (int curveIndex = 0; curveIndex < dsp::numCurves; ++curveIndex)
     {
-        if (curveIndex == 10)
-            continue;
-
         std::vector<float> chL (static_cast<size_t> (numSamples), 1.0f);
         std::vector<float> chR (static_cast<size_t> (numSamples), 1.0f);
         float* channels[2] = { chL.data(), chR.data() };
@@ -426,8 +423,51 @@ TEST_CASE ("DuckingEngine: cyclic wrap across phi 1.0 to 0.0 maintains C1 contin
             maxWrapDelta  = std::max (maxWrapDelta, d);
         }
 
-        // Con la micro-rampa Hermite C1 de 2.0 ms (96 muestras a 48 kHz), el salto maximo por muestra
-        // en el wrap es <= 1.5 / 96 ~ 0.0156 (muy por debajo del salto IIR de ~0.0915)
-        CHECK (maxWrapDelta <= 0.020f);
+        // Con la ventana de Pre-Release en [0.97, 1.0], la ganancia alcanza suavemente C(0) antes del wrap,
+        // garantizando delta por muestra en el cruce <= 0.006f (sin saltos bruscos en ninguna curva)
+        CHECK (maxWrapDelta <= 0.006f);
+        const float immediateWrapDelta = std::abs (chL[static_cast<size_t> (wrapCenter)] - chL[static_cast<size_t> (wrapCenter - 1)]);
+        CHECK (immediateWrapDelta <= 0.001f);
     }
+}
+
+TEST_CASE ("DuckingEngine: abrupt internal steps like 11 Trance Gate trigger Hermite anti-pop ramp", "[dsp][smoother][gate]")
+{
+    constexpr double kFs = 48000.0;
+    constexpr double kBpm = 120.0;
+    const int numSamples = static_cast<int> ((60.0 / kBpm) * kFs);
+
+    std::vector<float> phases (static_cast<size_t> (numSamples));
+    dsp::MusicalContext ctx;
+    ctx.ppqPosition = 0.0;
+    ctx.bpm         = kBpm;
+    ctx.sampleRate  = kFs;
+    dsp::fillBlockPhases (ctx, dsp::RateDivision::Quarter, phases);
+
+    std::vector<float> chL (static_cast<size_t> (numSamples), 1.0f);
+    std::vector<float> chR (static_cast<size_t> (numSamples), 1.0f);
+    float* channels[2] = { chL.data(), chR.data() };
+
+    dsp::DuckingEngine engine;
+    engine.prepare (kFs);
+
+    dsp::DuckingParameters params;
+    params.curveIndex = 10; // 11 Trance Gate
+    params.mix        = 1.0f;
+    params.shift      = 0.0f;
+    params.slope      = 0.5f;
+    params.channels   = dsp::ChannelsMode::Stereo;
+    params.bypass     = false;
+
+    engine.process (channels, 2, numSamples, params, phases);
+
+    float maxDelta = 0.0f;
+    for (int i = 1; i < numSamples; ++i)
+    {
+        const float d = std::abs (chL[static_cast<size_t> (i)] - chL[static_cast<size_t> (i - 1)]);
+        maxDelta      = std::max (maxDelta, d);
+    }
+
+    // Con la rampa Hermite de 4.5 ms (216 muestras a 48 kHz), el paso maximo por muestra en el escalon interno es <= 0.010
+    CHECK (maxDelta <= 0.010f);
 }

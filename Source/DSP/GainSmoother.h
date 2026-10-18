@@ -9,8 +9,8 @@ namespace umbral::dsp
     class GainSmoother
     {
     public:
-        static constexpr float kDefaultSmoothingMs = 1.5f;
-        static constexpr float kAntiPopRampMs      = 2.0f;
+        static constexpr float kDefaultSmoothingMs = 2.5f;
+        static constexpr float kAntiPopRampMs      = 4.5f;
         static constexpr float kSnapEpsilon        = 1.0e-6f;
 
         GainSmoother() noexcept = default;
@@ -24,7 +24,7 @@ namespace umbral::dsp
         // Marca el suavizador para que la siguiente muestra fije el estado inicial sin rampa de arranque.
         void resetToNextSample() noexcept;
 
-        // Inicia una micro-rampa cubica Hermite (smoothstep de 2.0 ms, C1 continua) desde el valor actual.
+        // Inicia una micro-rampa cubica Hermite (smoothstep de 4.5 ms, C1 continua) desde el valor actual.
         void triggerAntiPopRamp() noexcept;
 
         // Procesa una muestra hacia targetGain y devuelve la ganancia suavizada en [0, 1].

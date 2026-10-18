@@ -36,13 +36,20 @@ namespace umbral::dsp
         // Reinicia el estado del suavizador para que la primera muestra del siguiente bloque fije el nivel inicial.
         void reset() noexcept;
 
-        // Inicia una micro-rampa cubica Hermite (2.0 ms) anti-pop ante reinicios de fase (ej. MIDI NoteOn).
+        static constexpr float kPreReleaseStartPhi = 0.97f;
+        static constexpr float kStepThreshold      = 0.35f;
+
+        // Inicia una micro-rampa cubica Hermite (4.5 ms) anti-pop ante reinicios de fase (ej. MIDI NoteOn).
         void triggerAntiPopRamp() noexcept;
 
-        // Calcula la ganancia efectiva instantanea (sin suavizado):
-        // G(phi) = (1 - M) + M * C_slope(frac(phi - S))
+        // Calcula la ganancia efectiva instantanea (sin suavizado) para la representacion visual y matematica:
+        // G(phi) = (1 - M) + M * C_slope(applyShift(phi, S))
         // Salida garantizada finita en [0, 1].
         [[nodiscard]] static float computeGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept;
+
+        // Calcula la ganancia acustica instantanea aplicando lookahead de fin de ciclo en [0.97, 1.0]:
+        // Interpola suavemente con smoothstep C1 hacia G(0.0) para garantizar continuidad periodica exacta G(1.0-) == G(0.0+).
+        [[nodiscard]] static float computeAcousticGain (int curveIndex, float phi, float shift, float slope, float mix) noexcept;
 
         // Procesa un bloque de canales (1 mono o 2 estereo) aplicando una fase constante al bloque (T-04).
         void process (float* const* channels, int numChannels, int numSamples,
@@ -65,5 +72,6 @@ namespace umbral::dsp
 
         GainSmoother gainSmoother;
         float lastShiftedPhase = -1.0f;
+        float lastRawGain      = -1.0f;
     };
 }

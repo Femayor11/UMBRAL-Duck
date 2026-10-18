@@ -462,21 +462,26 @@ TEST_CASE ("Processor MIDI trigger: NoteOn resets phase at exact sample offset w
         // Antes de triggerSample la ganancia sigue cerca de 1.0
         CHECK (buf.getSample (0, triggerSample - 1) > 0.90f);
 
-        // Tras triggerSample (quedan 156 muestras > 96 muestras de rampa de 2.0 ms a 48 kHz),
-        // la ganancia desciende hasta 0.0 (valle inicial de 01 Classic en [0, 0.12])
-        CHECK (buf.getSample (0, blockSize - 1) < 0.01f);
+        // Tras triggerSample (quedan 156 muestras de la rampa Hermite de 4.5 ms / 216 muestras a 48 kHz),
+        // la ganancia desciende suavemente hacia 0.0 (valle inicial de 01 Classic en [0, 0.12])
+        CHECK (buf.getSample (0, blockSize - 1) < 0.25f);
 
         // Verifica que la fase final del bloque corresponde exactamente a (blockSize - triggerSample) muestras desde 0.0
         const double expectedEndPhase = static_cast<double> (blockSize - triggerSample) * (120.0 / (60.0 * kFs));
         CHECK_THAT (static_cast<double> (processor.getUiStateSnapshot().currentPhase),
                     WithinAbs (expectedEndPhase, 1.0e-5));
 
-        // Continuidad C1 anti-pop: ningun salto muestra a muestra supera el umbral seguro (1.5 / 96 ~ 0.0156)
+        // En el siguiente bloque la rampa de 4.5 ms culmina y asienta en el valle
+        auto nextBuf = makeUnityBuffer();
+        processor.processBlock (nextBuf, emptyMidi);
+        CHECK (nextBuf.getSample (0, 100) < 0.01f);
+
+        // Continuidad C1 anti-pop: ningun salto muestra a muestra supera el umbral seguro (1.5 / 216 ~ 0.0069)
         float maxDelta = 0.0f;
         for (int i = 1; i < blockSize; ++i)
             maxDelta = std::max (maxDelta, std::abs (buf.getSample (0, i) - buf.getSample (0, i - 1)));
 
-        CHECK (maxDelta < 0.025f);
+        CHECK (maxDelta < 0.015f);
     }
 
     SECTION ("NoteOff and CC events do not reset phase")
